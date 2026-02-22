@@ -1,4 +1,5 @@
 import { mkdirSync } from 'node:fs';
+import { fetchLatestWaWebVersion } from '@whiskeysockets/baileys';
 import { createWaSocket, getDefaultAuthDir, DisconnectReason, getDisconnectReason, isAuthenticated, type WASocket } from './session.js';
 import { sendWhatsAppMessage, editWhatsAppMessage, deleteWhatsAppMessage, toWhatsAppJid } from './send.js';
 import { registerChannelHandler } from '../../tools/messaging.js';
@@ -57,6 +58,8 @@ export async function startWhatsAppMonitor(opts: WhatsAppMonitorOptions): Promis
   const pendingApprovals = new Map<string, PendingApproval>();
   const pendingQuestions = new Map<string, PendingQuestion>();
 
+  let waVersion: [number, number, number] | undefined;
+
   async function connect(): Promise<void> {
     if (stopped) return;
 
@@ -68,11 +71,25 @@ export async function startWhatsAppMonitor(opts: WhatsAppMonitorOptions): Promis
     try {
       sock = await createWaSocket({
         authDir,
+        version: waVersion,
         onConnection: (state, err) => {
           if (state === 'close' && !stopped) {
             const code = getDisconnectReason(err);
-            if (code === DisconnectReason.loggedOut || code === 405) {
+            if (code === DisconnectReason.loggedOut) {
               console.error('[whatsapp] logged out (code ' + code + '), needs re-login');
+              return;
+            }
+            if (code === 405 && !waVersion) {
+              // WA version drift — retry with latest version
+              console.warn('[whatsapp] version drift (405), fetching latest WA web version...');
+              fetchLatestWaWebVersion({}).then((latest) => {
+                waVersion = latest.version as [number, number, number];
+                console.log(`[whatsapp] retrying with WA version ${waVersion.join('.')} (isLatest=${latest.isLatest})`);
+                reconnectTimer = setTimeout(() => connect(), 1000);
+              }).catch((e) => {
+                console.error('[whatsapp] failed to fetch WA version:', e);
+                reconnectTimer = setTimeout(() => connect(), 5000);
+              });
               return;
             }
             console.log(`[whatsapp] disconnected (${code}), reconnecting in 5s...`);
