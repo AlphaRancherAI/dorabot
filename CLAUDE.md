@@ -1,3 +1,7 @@
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
 # dorabot
 
 Personal AI agent with multi-channel messaging, browser automation, and persistent memory.
@@ -25,7 +29,9 @@ For SDK/API questions, check official SDK documentation and API docs via claude-
 - **Providers**: Pluggable — Claude (Agent SDK, default) or OpenAI Codex (Codex SDK)
 - **Calendar**: RFC 5545 iCal RRULE-based scheduling (replaced cron)
 
-## Build
+## Build & Dev
+
+Requires Node.js >=22.0.0.
 
 ```bash
 # backend
@@ -34,10 +40,28 @@ npm run build                        # tsc → dist/
 # desktop (all-in-one via electron-vite)
 cd desktop && npm run build          # → desktop/out/{main,preload,renderer}
 
-# dev
-npm run dev                          # gateway with auto-reload (tsx --watch)
-npm run dev:desktop                  # desktop with HMR (electron-vite dev)
-npm run dev:cli                      # interactive CLI mode
+# dev (kills existing :18789/:5173, builds, watches tsc, launches desktop with HMR)
+npm run dev                          # full stack: backend watch + desktop HMR
+npm run dev:gateway                  # gateway only with tsx --watch, logs to ~/.dorabot/logs/
+npm run dev:desktop                  # desktop only with HMR (electron-vite dev)
+npm run dev:cli                      # interactive CLI mode (no gateway)
+
+# typecheck (no emit)
+npm run typecheck                    # backend only
+cd desktop && npm run typecheck      # desktop only (separate tsconfig)
+
+# packaging (macOS desktop app)
+cd desktop && npm run package        # build + electron-builder + install to /Applications
+```
+
+No linter or test framework configured. Manual test scripts via `tsx`:
+
+```bash
+npm run test:event-log               # test gateway event logging
+npm run test:reconnect-replay        # test WebSocket reconnection replay
+npm run test:question-lifecycle      # test tool approval question flow
+npm run test:load-7x4               # load test: 7 sessions × 4 concurrent
+npm run test:scheduler-run           # test calendar scheduler execution
 ```
 
 ## Key Files

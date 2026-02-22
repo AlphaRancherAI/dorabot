@@ -78,6 +78,10 @@ export async function loginWhatsApp(authDir?: string, onQr?: (qr: string) => voi
         throw err;
       }
 
+      // Wait for creds.update to flush (registered=true) before closing
+      // Baileys fires creds.update asynchronously after connection opens
+      await new Promise(resolve => setTimeout(resolve, 2000));
+
       const selfJid = (sock as any).authState?.creds?.me?.id;
       console.log(`Logged in as: ${selfJid || 'unknown'}`);
       sock.end(undefined);
