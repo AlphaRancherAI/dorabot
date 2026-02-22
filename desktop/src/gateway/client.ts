@@ -29,8 +29,8 @@ type PendingRpc = {
 
 /**
  * Gateway client that communicates via IPC to the main process bridge.
- * The actual WebSocket runs in the main process (Node.js) which handles
- * TLS natively, avoiding Chromium's self-signed cert issues.
+ * The actual WebSocket runs in the main process (Node.js) over a Unix
+ * domain socket, avoiding renderer/network TLS constraints entirely.
  */
 export class GatewayClient {
   private state: GatewayConnectionState = 'disconnected';

@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { readFileSync, mkdtempSync, rmSync, mkdirSync } from 'node:fs';
+import { Agent } from 'node:http';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { WebSocket } from 'ws';
@@ -24,12 +25,12 @@ async function waitFor<T>(fn: () => T | undefined, timeoutMs: number, label: str
   throw new Error(`timeout waiting for ${label}`);
 }
 
-async function connectAuthed(url: string, token: string): Promise<{
+async function connectAuthed(socketPath: string, token: string): Promise<{
   ws: WebSocket;
   events: GatewayMsg[];
   rpc: (method: string, params?: Record<string, unknown>) => Promise<any>;
 }> {
-  const ws = new WebSocket(url);
+  const ws = new WebSocket('ws://localhost', { agent: new Agent({ socketPath }) });
   const events: GatewayMsg[] = [];
   const pending = new Map<number, { resolve: (value: any) => void; reject: (reason: Error) => void }>();
   let rpcId = 0;
@@ -77,7 +78,7 @@ async function main(): Promise<void> {
 
   const { loadConfig } = await import('../src/config.js');
   const { startGateway } = await import('../src/gateway/server.js');
-  const { GATEWAY_TOKEN_PATH } = await import('../src/workspace.js');
+  const { GATEWAY_TOKEN_PATH, GATEWAY_SOCKET_PATH } = await import('../src/workspace.js');
 
   const dorabotDir = join(tempHome, '.dorabot');
   mkdirSync(dorabotDir, { recursive: true });
@@ -88,11 +89,9 @@ async function main(): Promise<void> {
   `);
   bootstrapDb.close();
 
-  const port = 19891;
-  const host = '127.0.0.1';
-  const wsUrl = `ws://${host}:${port}`;
+  const socketPath = GATEWAY_SOCKET_PATH;
   const config = await loadConfig();
-  config.gateway = { ...(config.gateway || {}), tls: false, host, port, streamV2: true };
+  config.gateway = { ...(config.gateway || {}), streamV2: true };
   config.channels = {
     ...(config.channels || {}),
     whatsapp: { ...(config.channels?.whatsapp || {}), enabled: false },
@@ -101,12 +100,12 @@ async function main(): Promise<void> {
   config.calendar = { enabled: false };
   config.cron = { enabled: false };
 
-  const gateway = await startGateway({ config, host, port });
+  const gateway = await startGateway({ config, socketPath });
   const token = readFileSync(GATEWAY_TOKEN_PATH, 'utf-8').trim();
   const sessionKey = 'desktop:dm:test-reconnect-replay';
 
   try {
-    const c1 = await connectAuthed(wsUrl, token);
+    const c1 = await connectAuthed(socketPath, token);
     await c1.rpc('sessions.subscribe', {
       sessionKeys: [sessionKey],
       lastSeq: 0,
@@ -147,7 +146,7 @@ async function main(): Promise<void> {
       });
     }
 
-    const c2 = await connectAuthed(wsUrl, token);
+    const c2 = await connectAuthed(socketPath, token);
     await c2.rpc('sessions.subscribe', {
       sessionKeys: [sessionKey],
       lastSeq: lastSeenSeq,

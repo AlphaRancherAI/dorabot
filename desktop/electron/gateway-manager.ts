@@ -4,7 +4,7 @@ import { execSync, spawn, ChildProcess } from 'child_process';
 import { join } from 'path';
 import { createConnection } from 'net';
 import { is } from '@electron-toolkit/utils';
-import { DORABOT_DIR, DORABOT_LOGS_DIR, GATEWAY_LOG_PATH, GATEWAY_TOKEN_PATH } from './dorabot-paths';
+import { DORABOT_DIR, DORABOT_LOGS_DIR, GATEWAY_LOG_PATH, GATEWAY_SOCKET_PATH, GATEWAY_TOKEN_PATH } from './dorabot-paths';
 
 // macOS Electron apps launched from Finder/Dock get a minimal PATH (/usr/bin:/bin:/usr/sbin:/sbin)
 // which doesn't include node, homebrew, nvm, etc. Resolve the real PATH from a login shell.
@@ -75,9 +75,9 @@ export class GatewayManager {
     if (!existsSync(DORABOT_LOGS_DIR)) mkdirSync(DORABOT_LOGS_DIR, { recursive: true });
   }
 
-  private isGatewayListening(host: string, port: number, timeoutMs = 500): Promise<boolean> {
+  private isGatewayListening(socketPath: string, timeoutMs = 500): Promise<boolean> {
     return new Promise((resolve) => {
-      const socket = createConnection({ host, port });
+      const socket = createConnection({ path: socketPath });
       let settled = false;
       const finish = (ok: boolean): void => {
         if (settled) return;
@@ -92,18 +92,18 @@ export class GatewayManager {
     });
   }
 
-  /** Wait for gateway token and gateway TCP listener to become available */
+  /** Wait for gateway token and gateway Unix socket listener to become available */
   private async waitForReady(proc: UtilityProcess | ChildProcess, timeoutMs = 20000): Promise<void> {
     const tokenPath = GATEWAY_TOKEN_PATH;
+    const socketPath = GATEWAY_SOCKET_PATH;
     const startedAt = Date.now();
     while (Date.now() - startedAt <= timeoutMs) {
       // Process exited/replaced while waiting for readiness
       if (this.process !== proc) {
         throw new Error('Gateway process exited before becoming ready');
       }
-      if (existsSync(tokenPath)) {
-        const listening = await this.isGatewayListening('127.0.0.1', 18789)
-          || await this.isGatewayListening('localhost', 18789);
+      if (existsSync(tokenPath) && existsSync(socketPath)) {
+        const listening = await this.isGatewayListening(socketPath);
         if (listening) return;
       }
       await new Promise((resolve) => setTimeout(resolve, 200));

@@ -1,12 +1,13 @@
 /**
  * Gateway WebSocket bridge - runs in the main process.
- * Uses Node.js `ws` module which handles self-signed TLS certs natively
- * (no Chromium TLS restrictions). Relays messages to/from renderer via IPC.
+ * Connects to the local gateway over a Unix domain socket and relays
+ * messages to/from renderer via IPC.
  */
 import WebSocket from 'ws';
+import { createConnection } from 'node:net';
 import { readFileSync, existsSync, appendFileSync } from 'fs';
 import { BrowserWindow } from 'electron';
-import { GATEWAY_TOKEN_PATH, GATEWAY_LOG_PATH } from './dorabot-paths';
+import { GATEWAY_TOKEN_PATH, GATEWAY_LOG_PATH, GATEWAY_SOCKET_PATH } from './dorabot-paths';
 
 const HEARTBEAT_INTERVAL_MS = 10_000;
 const HEARTBEAT_TIMEOUT_MS = 5_000;
@@ -26,11 +27,13 @@ export class GatewayBridge {
   private pendingRpc = new Map<number, { resolve: (v: unknown) => void; reject: (e: Error) => void; timer: ReturnType<typeof setTimeout> }>();
   private window: BrowserWindow | null = null;
   private url: string;
+  private socketPath: string;
   private connectId: string | undefined;
   private lastReason: string | undefined;
 
-  constructor(url = 'wss://127.0.0.1:18789') {
+  constructor(url = 'ws://localhost', socketPath = GATEWAY_SOCKET_PATH) {
     this.url = url;
+    this.socketPath = socketPath;
   }
 
   private log(msg: string): void {
@@ -81,9 +84,11 @@ export class GatewayBridge {
 
   private openSocket(): void {
     this.setState('connecting');
-    this.log(`opening WebSocket to ${this.url} (attempt ${this.reconnectAttempt})`);
+    this.log(`opening WebSocket to ${this.url} via ${this.socketPath} (attempt ${this.reconnectAttempt})`);
 
-    const ws = new WebSocket(this.url, { rejectUnauthorized: false });
+    const ws = new WebSocket(this.url, {
+      createConnection: () => createConnection({ path: this.socketPath }),
+    });
     this.ws = ws;
 
     ws.on('open', () => {

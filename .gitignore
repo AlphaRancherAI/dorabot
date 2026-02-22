@@ -6,6 +6,8 @@ node_modules/
 
 # build outputs
 dist/
+main.js
+.next/
 dist-electron/
 out/
 desktop/dist/
@@ -59,3 +61,6 @@ desktop/public/sprites/think_*.png
 desktop/public/sprites/celebrate_*.png
 desktop/public/sprites/type_*.png
 desktop/public/sprites/sleep_*.png
+
+# external skills
+skills/anthropic-skills/

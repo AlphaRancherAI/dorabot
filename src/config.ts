@@ -3,11 +3,11 @@ import { homedir } from 'node:os';
 import { join, dirname, resolve } from 'node:path';
 import {
   DORABOT_CONFIG_PATH,
+  GATEWAY_SOCKET_PATH,
   GATEWAY_TOKEN_PATH,
   LEGACY_CODEX_AUTH_PATH,
   SESSIONS_DIR,
   SKILLS_DIR,
-  TLS_DIR,
   WHATSAPP_AUTH_DIR,
   toHomeAlias,
 } from './workspace.js';
@@ -263,8 +263,8 @@ export const ALWAYS_DENIED = [
   '~/.aws',
   toHomeAlias(WHATSAPP_AUTH_DIR),
   toHomeAlias(GATEWAY_TOKEN_PATH),
+  toHomeAlias(GATEWAY_SOCKET_PATH),
   toHomeAlias(LEGACY_CODEX_AUTH_PATH),
-  toHomeAlias(TLS_DIR),
   '~/.config/nanoclaw',
 ];
 

@@ -19,7 +19,7 @@ For SDK/API questions, check official SDK documentation and API docs via claude-
 ## Architecture
 
 - **Backend**: Node.js + TypeScript, Claude Agent SDK (`@anthropic-ai/claude-agent-sdk`)
-- **Gateway**: WebSocket RPC server on port 18789 (`src/gateway/server.ts`)
+- **Gateway**: WebSocket RPC server over Unix socket `~/.dorabot/gateway.sock` (`src/gateway/server.ts`)
 - **Desktop**: Electron + Vite + React in `desktop/`
 - **Channels**: WhatsApp (Baileys), Telegram (grammy)
 - **Database**: SQLite (`~/.dorabot/dorabot.db`) via better-sqlite3, WAL mode

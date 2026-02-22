@@ -1,6 +1,6 @@
 {
   "name": "dorabot",
-  "version": "0.2.12",
+  "version": "0.2.13",
   "type": "module",
   "description": "Open-source personal AI agent. Persistent memory, multi-channel messaging, browser automation, and proactive goal management.",
   "main": "dist/index.js",
@@ -9,7 +9,7 @@
   },
   "scripts": {
     "build": "tsc",
-    "dev": "(lsof -ti :18789 -i :5173 | xargs kill -9 2>/dev/null; trap 'kill 0' SIGINT; npm run build && tsc --watch --preserveWatchOutput & npm -C desktop run dev)",
+    "dev": "(lsof -ti :5173 | xargs kill -9 2>/dev/null; trap 'kill 0' SIGINT; npm run build && tsc --watch --preserveWatchOutput & npm -C desktop run dev)",
     "dev:gateway": "mkdir -p ~/.dorabot/logs && tsx watch src/index.ts -g 2>&1 | tee ~/.dorabot/logs/gateway.log",
     "dev:cli": "tsx src/index.ts -i",
     "dev:desktop": "npm -C desktop run dev",
