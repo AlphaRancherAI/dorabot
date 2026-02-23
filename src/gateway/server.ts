@@ -3128,8 +3128,14 @@ export async function startGateway(opts: GatewayOptions): Promise<Gateway> {
         case 'sessions.get': {
           const sessionId = params?.sessionId as string;
           if (!sessionId) return { id, error: 'sessionId required' };
-          const messages = fileSessionManager.load(sessionId);
-          return { id, result: { sessionId, messages } };
+          const limit = typeof params?.limit === 'number' ? Math.min(params.limit, 1000) : 200;
+          const offset = typeof params?.offset === 'number' ? params.offset : undefined;
+          const allMessages = fileSessionManager.load(sessionId);
+          const total = allMessages.length;
+          const messages = offset !== undefined
+            ? allMessages.slice(offset, offset + limit)
+            : allMessages.slice(-limit);
+          return { id, result: { sessionId, messages, total, limit, hasMore: total > limit } };
         }
 
         case 'sessions.delete': {

@@ -88,6 +88,7 @@ export class GatewayBridge {
 
     const ws = new WebSocket(this.url, {
       createConnection: () => createConnection({ path: this.socketPath }),
+      maxPayload: 0, // unlimited — sessions.get can return large message histories
     });
     this.ws = ws;
 

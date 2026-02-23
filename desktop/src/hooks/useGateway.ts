@@ -581,7 +581,7 @@ export function useGateway() {
 
   const loadSessionIntoMap = useCallback(async (sessionId: string, sessionKey: string, chatId?: string) => {
     try {
-      const res = await rpc('sessions.get', { sessionId }) as { sessionId: string; messages: SessionMessage[] };
+      const res = await rpc('sessions.get', { sessionId, limit: 200 }) as { sessionId: string; messages: SessionMessage[]; total?: number; hasMore?: boolean };
       if (res?.messages) {
         const items = sessionMessagesToChatItems(res.messages);
         setSessionStates(prev => ({

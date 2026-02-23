@@ -680,6 +680,7 @@ export function ChatView({ gateway, chatItems, agentStatus, pendingQuestion, ses
   const [input, setInput] = useState('');
   const [sending, setSending] = useState(false);
   const [attachedImages, setAttachedImages] = useState<ImageAttachment[]>([]);
+  const [queuedPrompt, setQueuedPrompt] = useState<string>('');
   const [compact, setCompact] = useState(false);
   const nextAutoScrollBehaviorRef = useRef<ScrollBehavior>('auto');
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -688,6 +689,7 @@ export function ChatView({ gateway, chatItems, agentStatus, pendingQuestion, ses
   const landingRef = useRef<HTMLDivElement>(null);
   const isRunning = agentStatus !== 'idle';
   const isEmpty = chatItems.length === 0;
+  const connected = gateway.connectionState === 'connected';
 
   useEffect(() => {
     const el = landingRef.current;
@@ -766,6 +768,12 @@ export function ChatView({ gateway, chatItems, agentStatus, pendingQuestion, ses
     const prompt = overridePrompt || input.trim();
     if ((!prompt && attachedImages.length === 0) || sending || pendingQuestion) return;
 
+    if (!connected) {
+      // Queue and wait for reconnect
+      setQueuedPrompt(prompt);
+      return;
+    }
+
     const images = attachedImages.length > 0 ? [...attachedImages] : undefined;
     nextAutoScrollBehaviorRef.current = 'smooth';
     if (!overridePrompt) setInput('');
@@ -778,6 +786,17 @@ export function ChatView({ gateway, chatItems, agentStatus, pendingQuestion, ses
       setSending(false);
     }
   };
+
+  // Auto-send queued prompt when connection is restored
+  useEffect(() => {
+    if (connected && queuedPrompt) {
+      const prompt = queuedPrompt;
+      setQueuedPrompt('');
+      setInput('');
+      handleSend(prompt);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [connected]);
 
   const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -853,7 +872,6 @@ export function ChatView({ gateway, chatItems, agentStatus, pendingQuestion, ses
     }
   };
 
-  const connected = gateway.connectionState === 'connected';
   const authenticated = gateway.providerInfo?.auth?.authenticated ?? true; // assume true until loaded
   const isReady = connected && authenticated;
   const gatewayFailed = !connected && !!gateway.gatewayError;
@@ -1020,8 +1038,8 @@ export function ChatView({ gateway, chatItems, agentStatus, pendingQuestion, ses
             onChange={e => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
             onPaste={handlePaste}
-            placeholder={connected ? 'type a message...' : 'waiting for gateway...'}
-            disabled={!connected || !!pendingQuestion}
+            placeholder={queuedPrompt ? `queued — will send when reconnected` : connected ? 'type a message...' : 'reconnecting...'}
+            disabled={!!pendingQuestion}
             className="w-full min-h-[64px] max-h-[200px] resize-none text-[13px] border-0 rounded-2xl bg-transparent shadow-none focus-visible:ring-0"
             rows={2}
           />
@@ -1060,7 +1078,7 @@ export function ChatView({ gateway, chatItems, agentStatus, pendingQuestion, ses
                 size="sm"
                 className="h-8 w-8 p-0 rounded-lg"
                 onClick={() => { handleSend(); }}
-                disabled={(!input.trim() && attachedImages.length === 0) || sending || !connected}
+                disabled={(!input.trim() && attachedImages.length === 0) || sending || !!pendingQuestion}
               >
                 <ArrowUp className="w-4 h-4" />
               </Button>
