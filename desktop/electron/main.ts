@@ -5,7 +5,7 @@ import * as path from 'path';
 import { existsSync, readFileSync } from 'fs';
 import { GatewayManager } from './gateway-manager';
 import { GatewayBridge } from './gateway-bridge';
-import { GATEWAY_LOG_PATH } from './dorabot-paths';
+import { DORABOT_DIR, GATEWAY_LOG_PATH } from './dorabot-paths';
 
 function readGatewayLogs(): string {
   try {
@@ -25,12 +25,11 @@ let gatewayManager: GatewayManager | null = null;
 let gatewayBridge: GatewayBridge | null = null;
 let updateCheckInterval: ReturnType<typeof setInterval> | null = null;
 
-// When DORABOT_HOME is set, give this instance its own userData dir so the
-// single-instance lock, session storage, and Electron caches don't collide
-// with the default instance.
-if (process.env.DORABOT_HOME) {
-  app.setPath('userData', path.join(process.env.DORABOT_HOME, 'electron'));
-}
+// Always root Electron's userData inside DORABOT_DIR so that:
+// 1. The single-instance lock lives in the instance's own data dir
+// 2. Electron's MachPort rendezvous server gets a unique name per instance
+//    (avoiding namespace collision when two instances run simultaneously)
+app.setPath('userData', path.join(DORABOT_DIR, 'electron'));
 
 const gotSingleInstanceLock = app.requestSingleInstanceLock();
 if (!gotSingleInstanceLock) {
