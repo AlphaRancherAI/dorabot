@@ -3,7 +3,7 @@ import { join } from 'node:path';
 import { homedir } from 'node:os';
 
 const HOME_DIR = homedir();
-export const DORABOT_DIR = join(homedir(), '.dorabot');
+export const DORABOT_DIR = process.env.DORABOT_HOME || join(homedir(), '.dorabot');
 export const WORKSPACE_DIR = join(DORABOT_DIR, 'workspace');
 export const MEMORIES_DIR = join(WORKSPACE_DIR, 'memories');
 export const RESEARCH_DIR = join(DORABOT_DIR, 'research');

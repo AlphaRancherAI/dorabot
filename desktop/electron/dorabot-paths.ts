@@ -1,7 +1,7 @@
 import { homedir } from 'os';
 import { join } from 'path';
 
-export const DORABOT_DIR = join(homedir(), '.dorabot');
+export const DORABOT_DIR = process.env.DORABOT_HOME || join(homedir(), '.dorabot');
 export const DORABOT_LOGS_DIR = join(DORABOT_DIR, 'logs');
 export const GATEWAY_TOKEN_PATH = join(DORABOT_DIR, 'gateway-token');
 export const GATEWAY_SOCKET_PATH = join(DORABOT_DIR, 'gateway.sock');
