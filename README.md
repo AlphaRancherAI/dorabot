@@ -89,6 +89,21 @@ dorabot -i            # interactive terminal
 dorabot -m "message"  # one-off question
 ```
 
+## Multiple Instances
+
+Run isolated instances with separate memories, goals, channels, and databases using `DORABOT_HOME`:
+
+```bash
+# Second gateway instance
+DORABOT_HOME=~/.dorabot2 dorabot -g
+
+# Second desktop instance (from the desktop/ directory)
+DORABOT_HOME=~/.dorabot2 env -u ELECTRON_RUN_AS_NODE \
+  node_modules/electron/dist/Electron.app/Contents/MacOS/Electron .
+```
+
+Each instance gets its own socket, token, database, workspace files, and channel credentials — they run fully independently with no shared state.
+
 ## Personalization
 
 The `onboard` skill interviews you and builds:
