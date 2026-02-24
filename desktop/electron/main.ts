@@ -25,6 +25,13 @@ let gatewayManager: GatewayManager | null = null;
 let gatewayBridge: GatewayBridge | null = null;
 let updateCheckInterval: ReturnType<typeof setInterval> | null = null;
 
+// When DORABOT_HOME is set, give this instance its own userData dir so the
+// single-instance lock, session storage, and Electron caches don't collide
+// with the default instance.
+if (process.env.DORABOT_HOME) {
+  app.setPath('userData', path.join(process.env.DORABOT_HOME, 'electron'));
+}
+
 const gotSingleInstanceLock = app.requestSingleInstanceLock();
 if (!gotSingleInstanceLock) {
   app.quit();
