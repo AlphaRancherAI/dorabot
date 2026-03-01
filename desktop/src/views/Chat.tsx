@@ -23,7 +23,7 @@ import {
   Globe, Search, Bot, MessageCircle, ListChecks, FileCode,
   MessageSquare, Camera, Monitor, Clock, Wrench, ArrowUp, LayoutGrid,
   Smile, Image, Brain, MapPin, PenLine, GitPullRequest, Radio,
-  Paperclip, X,
+  Paperclip, X, Cpu,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -132,26 +132,80 @@ const EFFORT_LEVELS = [
   { value: 'max', label: 'xhigh' },
 ];
 
+function isLocalEndpoint(url: string): boolean {
+  try {
+    const h = new URL(url).hostname;
+    return h === 'localhost' || h === '127.0.0.1' || h === '::1';
+  } catch { return false; }
+}
+
+function endpointLabel(url: string): string {
+  try {
+    const u = new URL(url);
+    if (u.hostname === 'localhost' || u.hostname === '127.0.0.1') return 'Local';
+    return u.hostname.split('.')[0] + (u.port ? `:${u.port}` : '');
+  } catch { return url; }
+}
+
 function ModelSelector({ gateway, disabled }: { gateway: ReturnType<typeof useGateway>; disabled: boolean }) {
-  const providerName = (gateway.configData as any)?.provider?.name || 'claude';
+  const providerName = gateway.providerInfo?.name || (gateway.configData as any)?.provider?.name || 'claude';
   const claudeModel = gateway.model || 'claude-sonnet-4-5-20250929';
   const codexModel = (gateway.configData as any)?.provider?.codex?.model || 'gpt-5.3-codex';
-  const currentValue = providerName === 'codex' ? `codex:${codexModel}` : `claude:${claudeModel}`;
+  const ollamaModel = gateway.model || 'llama3.2';
+  const activeBaseUrl = (gateway.configData as any)?.provider?.ollama?.baseUrl || 'http://localhost:11434';
+  // All endpoints to scan: configured list + local fallback
+  const configuredEndpoints: string[] = (gateway.configData as any)?.provider?.ollama?.endpoints || [];
+  const allEndpoints = configuredEndpoints.length > 0 ? configuredEndpoints : ['http://localhost:11434'];
+
+  const [endpointModels, setEndpointModels] = useState<Record<string, string[]>>({});
+
+  useEffect(() => {
+    for (const ep of allEndpoints) {
+      fetch(`${ep}/api/tags`, { signal: AbortSignal.timeout(3000) })
+        .then(r => r.ok ? r.json() : null)
+        .then((data: any) => {
+          if (data?.models) {
+            setEndpointModels(prev => ({ ...prev, [ep]: data.models.map((m: any) => m.name as string) }));
+          }
+        })
+        .catch(() => {});
+    }
+  }, [allEndpoints.join(',')]);
+
+  // ollama value encodes endpoint and model: "ollama|{endpoint}|{model}"
+  const currentValue = providerName === 'codex'
+    ? `codex:${codexModel}`
+    : providerName === 'ollama'
+      ? `ollama|${activeBaseUrl}|${ollamaModel}`
+      : `claude:${claudeModel}`;
 
   const handleChange = async (encoded: string) => {
-    const [provider, model] = encoded.split(':') as [string, string];
-    if (provider === 'claude') {
-      if (providerName !== 'claude') await gateway.setProvider('claude');
+    if (encoded.startsWith('ollama|')) {
+      const parts = encoded.split('|');
+      const endpoint = parts[1];
+      const model = parts.slice(2).join('|');
+      if (providerName !== 'ollama') await gateway.setProvider('ollama');
+      if (endpoint !== activeBaseUrl) await gateway.setConfig('provider.ollama.baseUrl', endpoint);
       gateway.changeModel(model);
     } else {
-      if (providerName !== 'codex') await gateway.setProvider('codex');
-      await gateway.setConfig('provider.codex.model', model);
+      const colonIdx = encoded.indexOf(':');
+      const provider = encoded.slice(0, colonIdx);
+      const model = encoded.slice(colonIdx + 1);
+      if (provider === 'claude') {
+        if (providerName !== 'claude') await gateway.setProvider('claude');
+        gateway.changeModel(model);
+      } else if (provider === 'codex') {
+        if (providerName !== 'codex') await gateway.setProvider('codex');
+        await gateway.setConfig('provider.codex.model', model);
+      }
     }
   };
 
   const currentLabel = providerName === 'codex'
     ? OPENAI_MODELS.find(m => m.value === codexModel)?.label || codexModel
-    : ANTHROPIC_MODELS.find(m => m.value === claudeModel)?.label || claudeModel;
+    : providerName === 'ollama'
+      ? ollamaModel
+      : ANTHROPIC_MODELS.find(m => m.value === claudeModel)?.label || claudeModel;
 
   const reasoningEffort = (gateway.configData as any)?.reasoningEffort || null;
 
@@ -164,14 +218,17 @@ function ModelSelector({ gateway, disabled }: { gateway: ReturnType<typeof useGa
     <div className="flex items-center gap-1">
       <Select value={currentValue} onValueChange={handleChange} disabled={disabled}>
         <SelectTrigger size="sm" className="h-7 gap-1.5 text-[11px] rounded-lg shadow-none w-auto">
-          <img
-            src={providerName === 'codex' ? './openai-icon.svg' : './claude-icon.svg'}
-            alt=""
-            className="w-3 h-3"
-          />
+          {providerName === 'ollama'
+            ? <Cpu className="w-3 h-3" />
+            : <img
+                src={providerName === 'codex' ? './openai-icon.svg' : './claude-icon.svg'}
+                alt=""
+                className="w-3 h-3"
+              />
+          }
           <span>{currentLabel}</span>
         </SelectTrigger>
-        <SelectContent position="popper" align="start" className="min-w-[180px]">
+        <SelectContent position="popper" align="start" className="min-w-[200px]">
           <div className="px-2 py-1 text-[9px] font-semibold text-muted-foreground uppercase tracking-wider">Anthropic</div>
           {ANTHROPIC_MODELS.map(m => (
             <SelectItem key={m.value} value={`claude:${m.value}`} className="text-xs">
@@ -190,6 +247,53 @@ function ModelSelector({ gateway, disabled }: { gateway: ReturnType<typeof useGa
               </span>
             </SelectItem>
           ))}
+          {/* Local Ollama section */}
+          {(() => {
+            const localEps = allEndpoints.filter(isLocalEndpoint);
+            const items = localEps.flatMap(ep => {
+              const models = endpointModels[ep];
+              const list = models ?? (providerName === 'ollama' && activeBaseUrl === ep ? [ollamaModel] : []);
+              return list.map(name => ({ ep, name }));
+            });
+            if (items.length === 0) return null;
+            return (
+              <div key="local-ollama">
+                <div className="px-2 py-1 mt-1 text-[9px] font-semibold text-muted-foreground uppercase tracking-wider border-t border-border">Local</div>
+                {items.map(({ ep, name }) => (
+                  <SelectItem key={`${ep}|${name}`} value={`ollama|${ep}|${name}`} className="text-xs">
+                    <span className="flex items-center gap-1.5">
+                      <Cpu className="w-3 h-3" />
+                      {name}
+                    </span>
+                  </SelectItem>
+                ))}
+              </div>
+            );
+          })()}
+          {/* Tailscale Ollama section */}
+          {(() => {
+            const remoteEps = allEndpoints.filter(ep => !isLocalEndpoint(ep));
+            const items = remoteEps.flatMap(ep => {
+              const models = endpointModels[ep];
+              const list = models ?? (providerName === 'ollama' && activeBaseUrl === ep ? [ollamaModel] : []);
+              return list.map(name => ({ ep, name, label: endpointLabel(ep) }));
+            });
+            if (items.length === 0) return null;
+            return (
+              <div key="tailscale-ollama">
+                <div className="px-2 py-1 mt-1 text-[9px] font-semibold text-muted-foreground uppercase tracking-wider border-t border-border">Tailscale</div>
+                {items.map(({ ep, name, label }) => (
+                  <SelectItem key={`${ep}|${name}`} value={`ollama|${ep}|${name}`} className="text-xs">
+                    <span className="flex items-center gap-1.5">
+                      <Cpu className="w-3 h-3" />
+                      <span className="text-muted-foreground">{label}</span>
+                      {name}
+                    </span>
+                  </SelectItem>
+                ))}
+              </div>
+            );
+          })()}
         </SelectContent>
       </Select>
       {providerName === 'codex' && (

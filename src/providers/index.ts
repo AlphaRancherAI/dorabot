@@ -24,8 +24,13 @@ export async function getProviderByName(name: string): Promise<Provider> {
         providers.set(name, new CodexProvider());
         break;
       }
+      case 'ollama': {
+        const { OllamaProvider } = await import('./ollama.js');
+        providers.set(name, new OllamaProvider());
+        break;
+      }
       default:
-        throw new Error(`Unknown provider: ${name}. Supported: claude, codex`);
+        throw new Error(`Unknown provider: ${name}. Supported: claude, codex, ollama`);
     }
   }
   return providers.get(name)!;

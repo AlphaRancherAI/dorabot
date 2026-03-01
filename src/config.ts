@@ -113,7 +113,7 @@ export type SecurityConfig = {
   tools?: ToolPolicyConfig;
 };
 
-export type ProviderName = 'claude' | 'codex' | 'minimax';
+export type ProviderName = 'claude' | 'codex' | 'minimax' | 'ollama';
 
 export type ReasoningEffort = 'minimal' | 'low' | 'medium' | 'high' | 'max';
 
@@ -132,9 +132,17 @@ export type CodexProviderConfig = {
   webSearch?: CodexWebSearchMode;
 };
 
+export type OllamaProviderConfig = {
+  /** Active endpoint for API calls. Default: http://localhost:11434 */
+  baseUrl?: string;
+  /** Additional endpoints to scan for models in the UI */
+  endpoints?: string[];
+};
+
 export type ProviderConfig = {
   name: ProviderName;
   codex?: CodexProviderConfig;
+  ollama?: OllamaProviderConfig;
 };
 
 export type McpServerEntry = {

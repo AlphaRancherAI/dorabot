@@ -4301,8 +4301,8 @@ export async function startGateway(opts: GatewayOptions): Promise<Gateway> {
 
         case 'provider.set': {
           const name = params?.name as ProviderName;
-          if (!name || !['claude', 'codex'].includes(name)) {
-            return { id, error: 'name must be "claude" or "codex"' };
+          if (!name || !['claude', 'codex', 'ollama'].includes(name)) {
+            return { id, error: 'name must be "claude", "codex", or "ollama"' };
           }
           config.provider.name = name;
           saveConfig(config);

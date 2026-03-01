@@ -11,7 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Shield, Brain, Globe, Settings2, Box, Lock, FolderLock, X, Plus, Wrench, Activity, Sun, Check } from 'lucide-react';
+import { Shield, Brain, Globe, Settings2, Box, Lock, FolderLock, X, Plus, Wrench, Activity, Sun, Check, Cpu } from 'lucide-react';
 
 type Props = {
   gateway: ReturnType<typeof useGateway>;
@@ -86,11 +86,17 @@ export function SettingsView({ gateway }: Props) {
             </CardContent>
           </Card>
 
+          {/* active provider selector */}
+          <ActiveProviderCard gateway={gateway} disabled={disabled} />
+
           {/* anthropic provider */}
           <AnthropicCard gateway={gateway} disabled={disabled} />
 
           {/* openai provider */}
           <OpenAICard gateway={gateway} disabled={disabled} />
+
+          {/* ollama provider */}
+          <OllamaCard gateway={gateway} disabled={disabled} />
 
           {/* gateway approval — shared across providers */}
           <Card>
@@ -585,6 +591,196 @@ function OpenAICard({ gateway, disabled }: { gateway: ReturnType<typeof useGatew
           {sandboxMode === 'danger-full-access' && approvalPolicy === 'never' && (
             <div className="text-[10px] text-warning bg-warning/10 rounded px-2 py-1.5">
               Codex has full system access with no approval — use caution
+            </div>
+          )}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+const PROVIDER_LABELS: Record<string, string> = {
+  claude: 'Claude (Anthropic)',
+  codex: 'Codex (OpenAI)',
+  ollama: 'Ollama (local)',
+};
+
+function ActiveProviderCard({ gateway, disabled }: { gateway: ReturnType<typeof useGateway>; disabled: boolean }) {
+  const cfg = gateway.configData as Record<string, any> | null;
+  const providerName = cfg?.provider?.name || 'claude';
+
+  const set = useCallback(async (key: string, value: unknown) => {
+    try { await gateway.setConfig(key, value); } catch (err) { console.error(`failed to set ${key}:`, err); }
+  }, [gateway]);
+
+  return (
+    <Card>
+      <CardContent className="p-4">
+        <div className="flex items-center gap-2 mb-4">
+          <Brain className="w-4 h-4 text-primary" />
+          <span className="text-xs font-semibold">Active Provider</span>
+        </div>
+        <SettingRow label="provider" description="which AI backend handles agent runs">
+          <Select value={providerName} onValueChange={v => set('provider.name', v)} disabled={disabled}>
+            <SelectTrigger className="h-7 w-44 text-[11px]">
+              <SelectValue>{PROVIDER_LABELS[providerName] ?? providerName}</SelectValue>
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="claude" className="text-[11px]">Claude (Anthropic)</SelectItem>
+              <SelectItem value="codex" className="text-[11px]">Codex (OpenAI)</SelectItem>
+              <SelectItem value="ollama" className="text-[11px]">Ollama (local)</SelectItem>
+            </SelectContent>
+          </Select>
+        </SettingRow>
+      </CardContent>
+    </Card>
+  );
+}
+
+const OLLAMA_DEFAULT_MODELS = [
+  'qwen2.5:14b',
+  'qwen2.5:7b',
+  'llama3.2',
+  'llama3.1:8b',
+  'mistral',
+  'phi4',
+];
+
+function OllamaCard({ gateway, disabled }: { gateway: ReturnType<typeof useGateway>; disabled: boolean }) {
+  const cfg = gateway.configData as Record<string, any> | null;
+  const providerName = cfg?.provider?.name || 'claude';
+  const isActive = providerName === 'ollama';
+  const currentModel = isActive ? (cfg?.model || 'qwen2.5:14b') : (cfg?.provider?.ollama?.lastModel || 'qwen2.5:14b');
+  const baseUrl = cfg?.provider?.ollama?.baseUrl || 'http://localhost:11434';
+  const [status, setStatus] = useState<'checking' | 'running' | 'offline'>('checking');
+  const [availableModels, setAvailableModels] = useState<string[]>([]);
+  const [customModel, setCustomModel] = useState('');
+
+  useEffect(() => {
+    let cancelled = false;
+    const check = async () => {
+      try {
+        const res = await fetch(`${baseUrl}/api/tags`, { signal: AbortSignal.timeout(2000) });
+        if (!res.ok) { if (!cancelled) setStatus('offline'); return; }
+        const data = await res.json() as { models?: Array<{ name: string }> };
+        if (!cancelled) {
+          setStatus('running');
+          setAvailableModels((data.models || []).map((m: { name: string }) => m.name));
+        }
+      } catch {
+        if (!cancelled) setStatus('offline');
+      }
+    };
+    check();
+    return () => { cancelled = true; };
+  }, [baseUrl, gateway.connectionState]);
+
+  const set = useCallback(async (key: string, value: unknown) => {
+    try { await gateway.setConfig(key, value); } catch (err) { console.error(`failed to set ${key}:`, err); }
+  }, [gateway]);
+
+  const allModels = [...new Set([...availableModels, ...OLLAMA_DEFAULT_MODELS])];
+
+  return (
+    <Card className={isActive ? 'ring-1 ring-primary/40' : ''}>
+      <CardContent className="p-4">
+        <div className="flex items-center gap-2 mb-4">
+          <Cpu className="w-4 h-4 text-primary" />
+          <span className="text-xs font-semibold">Ollama</span>
+          <div className="flex items-center gap-1 ml-auto">
+            {isActive && <Badge className="text-[9px] h-4 bg-primary/20 text-primary border-0">active</Badge>}
+            <Badge
+              variant={status === 'running' ? 'outline' : 'destructive'}
+              className={`text-[9px] h-4 ${status === 'running' ? 'text-success border-success/40' : ''}`}
+            >
+              {status === 'checking' ? '...' : status}
+            </Badge>
+          </div>
+        </div>
+
+        {status === 'offline' && (
+          <div className="text-[10px] text-warning bg-warning/10 rounded px-2 py-1.5 mb-3">
+            Ollama is not running. Start it with: <code className="font-mono">ollama serve</code>
+          </div>
+        )}
+
+        <div className="space-y-4">
+          <SettingRow label="model" description="Ollama model name for agent runs">
+            <div className="flex gap-1">
+              <Select
+                value={isActive ? currentModel : ''}
+                onValueChange={v => { set('model', v); set('provider.name', 'ollama'); }}
+                disabled={disabled}
+              >
+                <SelectTrigger className="h-7 w-40 text-[11px]">
+                  <SelectValue placeholder={isActive ? currentModel : 'pick model...'} />
+                </SelectTrigger>
+                <SelectContent>
+                  {allModels.map(m => (
+                    <SelectItem key={m} value={m} className="text-[11px]">
+                      {m}
+                      {availableModels.includes(m) && <span className="text-success ml-1">✓</span>}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </SettingRow>
+
+          <div className="flex gap-1.5">
+            <Input
+              placeholder="custom model name..."
+              value={customModel}
+              onChange={e => setCustomModel(e.target.value)}
+              onKeyDown={e => {
+                if (e.key === 'Enter' && customModel.trim()) {
+                  set('model', customModel.trim());
+                  set('provider.name', 'ollama');
+                  setCustomModel('');
+                }
+              }}
+              className="flex-1 h-7 text-[11px]"
+              disabled={disabled}
+            />
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-7 text-[11px] px-2"
+              disabled={disabled || !customModel.trim()}
+              onClick={() => {
+                set('model', customModel.trim());
+                set('provider.name', 'ollama');
+                setCustomModel('');
+              }}
+            >
+              use
+            </Button>
+          </div>
+
+          <SettingRow label="base URL" description="Ollama server address">
+            <Input
+              value={baseUrl}
+              onChange={e => set('provider.ollama.baseUrl', e.target.value)}
+              className="h-7 w-48 text-[11px]"
+              disabled={disabled}
+            />
+          </SettingRow>
+
+          {availableModels.length > 0 && (
+            <div>
+              <div className="text-[10px] text-muted-foreground mb-1">installed models</div>
+              <div className="flex flex-wrap gap-1">
+                {availableModels.map(m => (
+                  <Badge
+                    key={m}
+                    variant="outline"
+                    className="text-[9px] h-5 cursor-pointer hover:bg-primary/10"
+                    onClick={() => { set('model', m); set('provider.name', 'ollama'); }}
+                  >
+                    {m}
+                  </Badge>
+                ))}
+              </div>
             </div>
           )}
         </div>
