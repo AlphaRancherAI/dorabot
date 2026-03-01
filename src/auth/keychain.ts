@@ -1,6 +1,15 @@
 import { execFileSync } from 'node:child_process';
+import { homedir } from 'node:os';
+import { join, basename } from 'node:path';
 
-const SERVICE_NAME = 'dorabot';
+// Each DORABOT_HOME instance gets its own keychain namespace so credentials
+// are isolated. The default ~/.dorabot instance keeps 'dorabot' for backwards
+// compatibility; other instances use 'dorabot-<dirname>' (e.g. 'dorabot-dorabot2').
+const _dorDir = process.env.DORABOT_HOME || join(homedir(), '.dorabot');
+const _dorDefault = join(homedir(), '.dorabot');
+const SERVICE_NAME = _dorDir === _dorDefault
+  ? 'dorabot'
+  : `dorabot-${basename(_dorDir).replace(/^\./, '')}`;
 
 export type SecretStorageBackend = 'keychain' | 'file';
 
