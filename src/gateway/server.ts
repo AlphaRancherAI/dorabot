@@ -2117,8 +2117,11 @@ export async function startGateway(opts: GatewayOptions): Promise<Gateway> {
     cwd?: string;
     extraContext?: string;
     messageMetadata?: import('../session/manager.js').MessageMetadata;
+    modelOverride?: string;
+    providerOverride?: string;
+    ollamaBaseUrlOverride?: string;
   }): Promise<AgentResult | null> {
-    const { prompt, images, sessionKey, source, channel, cwd, extraContext, messageMetadata } = params;
+    const { prompt, images, sessionKey, source, channel, cwd, extraContext, messageMetadata, modelOverride, providerOverride, ollamaBaseUrlOverride } = params;
     console.log(`[gateway] agent run: source=${source} sessionKey=${sessionKey} prompt="${prompt.slice(0, 80)}..."`);
 
     // pre-run auth check: if dorabot_oauth token is expired, don't waste a run
@@ -2172,12 +2175,21 @@ export async function startGateway(opts: GatewayOptions): Promise<Gateway> {
           .map(s => ({ channel: s.channel, chatId: ownerChatIds.get(s.channel)! }));
         const pulseItem = scheduler?.listItems().find(i => i.id === AUTONOMOUS_SCHEDULE_ID);
         const lastPulseAt = pulseItem?.lastRunAt ? new Date(pulseItem.lastRunAt).getTime() : undefined;
+        const runConfig = (modelOverride || providerOverride) ? {
+          ...config,
+          ...(modelOverride ? { model: modelOverride } : {}),
+          provider: providerOverride ? {
+            ...config.provider,
+            name: providerOverride as typeof config.provider.name,
+            ...(ollamaBaseUrlOverride ? { ollama: { ...config.provider.ollama, baseUrl: ollamaBaseUrlOverride } } : {}),
+          } : config.provider,
+        } : config;
         const gen = streamAgent({
           prompt,
           images,
           sessionId: session?.sessionId,
           resumeId,
-          config,
+          config: runConfig,
           cwd,
           channel,
           connectedChannels: connected,
@@ -2860,6 +2872,9 @@ export async function startGateway(opts: GatewayOptions): Promise<Gateway> {
           const prompt = params?.prompt as string;
           const images = params?.images as Array<{ data: string; mediaType: string }> | undefined;
           if (!prompt) return { id, error: 'prompt required' };
+          const modelOverride = params?.modelOverride as string | undefined;
+          const providerOverride = params?.providerOverride as string | undefined;
+          const ollamaBaseUrlOverride = params?.ollamaBaseUrlOverride as string | undefined;
 
           const chatId = (params?.chatId as string) || randomUUID();
           const requestedSessionKey = params?.sessionKey as string | undefined;
@@ -2915,6 +2930,9 @@ export async function startGateway(opts: GatewayOptions): Promise<Gateway> {
             images,
             sessionKey,
             source: 'desktop/chat',
+            modelOverride,
+            providerOverride,
+            ollamaBaseUrlOverride,
           });
 
           return { id, result: { sessionKey, sessionId: session.sessionId, queued: true } };

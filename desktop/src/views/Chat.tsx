@@ -2,7 +2,7 @@ import { useState, useRef, useEffect, useMemo, useCallback, type KeyboardEvent, 
 import { DorabotSprite } from '../components/DorabotSprite';
 import Markdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import type { useGateway, ChatItem, AskUserQuestion, ImageAttachment } from '../hooks/useGateway';
+import type { useGateway, ChatItem, AskUserQuestion, ImageAttachment, SessionState } from '../hooks/useGateway';
 import { ApprovalList } from '@/components/approval-ui';
 import { ToolUI } from '@/components/tool-ui';
 import { ToolStreamCard, hasStreamCard } from '@/components/tool-stream';
@@ -147,12 +147,25 @@ function endpointLabel(url: string): string {
   } catch { return url; }
 }
 
-function ModelSelector({ gateway, disabled }: { gateway: ReturnType<typeof useGateway>; disabled: boolean }) {
-  const providerName = gateway.providerInfo?.name || (gateway.configData as any)?.provider?.name || 'claude';
-  const claudeModel = gateway.model || 'claude-sonnet-4-5-20250929';
-  const codexModel = (gateway.configData as any)?.provider?.codex?.model || 'gpt-5.3-codex';
-  const ollamaModel = gateway.model || 'llama3.2';
-  const activeBaseUrl = (gateway.configData as any)?.provider?.ollama?.baseUrl || 'http://localhost:11434';
+function ModelSelector({ gateway, disabled, sessionKey, sessionState }: {
+  gateway: ReturnType<typeof useGateway>;
+  disabled: boolean;
+  sessionKey: string;
+  sessionState: SessionState | undefined;
+}) {
+  const providerName = sessionState?.providerOverride
+    ?? gateway.providerInfo?.name
+    ?? (gateway.configData as any)?.provider?.name
+    ?? 'claude';
+  const claudeModel = (providerName === 'claude' ? sessionState?.modelOverride : null)
+    ?? gateway.model ?? 'claude-sonnet-4-5-20250929';
+  const codexModel = (providerName === 'codex' ? sessionState?.modelOverride : null)
+    ?? (gateway.configData as any)?.provider?.codex?.model ?? 'gpt-5.3-codex';
+  const ollamaModel = (providerName === 'ollama' ? sessionState?.modelOverride : null)
+    ?? gateway.model ?? 'llama3.2';
+  const activeBaseUrl = sessionState?.ollamaBaseUrlOverride
+    ?? (gateway.configData as any)?.provider?.ollama?.baseUrl
+    ?? 'http://localhost:11434';
   // All endpoints to scan: configured list + local fallback
   const configuredEndpoints: string[] = (gateway.configData as any)?.provider?.ollama?.endpoints || [];
   const allEndpoints = configuredEndpoints.length > 0 ? configuredEndpoints : ['http://localhost:11434'];
@@ -179,25 +192,18 @@ function ModelSelector({ gateway, disabled }: { gateway: ReturnType<typeof useGa
       ? `ollama|${activeBaseUrl}|${ollamaModel}`
       : `claude:${claudeModel}`;
 
-  const handleChange = async (encoded: string) => {
+  const handleChange = (encoded: string) => {
     if (encoded.startsWith('ollama|')) {
       const parts = encoded.split('|');
       const endpoint = parts[1];
       const model = parts.slice(2).join('|');
-      if (providerName !== 'ollama') await gateway.setProvider('ollama');
-      if (endpoint !== activeBaseUrl) await gateway.setConfig('provider.ollama.baseUrl', endpoint);
-      gateway.changeModel(model);
+      gateway.setTabModel(sessionKey, 'ollama', model, endpoint);
     } else {
       const colonIdx = encoded.indexOf(':');
       const provider = encoded.slice(0, colonIdx);
       const model = encoded.slice(colonIdx + 1);
-      if (provider === 'claude') {
-        if (providerName !== 'claude') await gateway.setProvider('claude');
-        gateway.changeModel(model);
-      } else if (provider === 'codex') {
-        if (providerName !== 'codex') await gateway.setProvider('codex');
-        await gateway.setConfig('provider.codex.model', model);
-      }
+      if (provider === 'claude') gateway.setTabModel(sessionKey, 'claude', model);
+      else if (provider === 'codex') gateway.setTabModel(sessionKey, 'codex', model);
     }
   };
 
@@ -905,7 +911,7 @@ export function ChatView({ gateway, chatItems, agentStatus, pendingQuestion, ses
                   onChange={e => { if (e.target.files) addImagesFromFiles(e.target.files); e.target.value = ''; }}
                 />
                 <div className="flex items-center px-3 pb-3">
-                  <ModelSelector gateway={gateway} disabled={!connected} />
+                  <ModelSelector gateway={gateway} disabled={!connected} sessionKey={sessionKey || ''} sessionState={gateway.sessionStates[sessionKey || '']} />
                   <Button
                     variant="ghost"
                     size="sm"
@@ -1028,7 +1034,7 @@ export function ChatView({ gateway, chatItems, agentStatus, pendingQuestion, ses
             onChange={e => { if (e.target.files) addImagesFromFiles(e.target.files); e.target.value = ''; }}
           />
           <div className="flex items-center px-3 pb-3">
-            <ModelSelector gateway={gateway} disabled={!connected} />
+            <ModelSelector gateway={gateway} disabled={!connected} sessionKey={sessionKey || ''} sessionState={gateway.sessionStates[sessionKey || '']} />
             <Button
               variant="ghost"
               size="sm"

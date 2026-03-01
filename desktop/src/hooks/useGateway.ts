@@ -229,6 +229,9 @@ export type SessionState = {
   agentStatus: string;
   sessionId?: string;
   pendingQuestion: AskUserQuestion | null;
+  modelOverride?: string;
+  providerOverride?: string;
+  ollamaBaseUrlOverride?: string;
 };
 
 const DEFAULT_SESSION_STATE: SessionState = {
@@ -1426,7 +1429,16 @@ export function useGateway() {
       };
     });
     try {
-      const res = await rpc('chat.send', { prompt, images: images?.length ? images : undefined, chatId: cid, sessionKey: sk }) as { sessionKey?: string } | undefined;
+      const state = sessionStates[sk];
+      const res = await rpc('chat.send', {
+        prompt,
+        images: images?.length ? images : undefined,
+        chatId: cid,
+        sessionKey: sk,
+        modelOverride: state?.modelOverride,
+        providerOverride: state?.providerOverride,
+        ollamaBaseUrlOverride: state?.ollamaBaseUrlOverride,
+      }) as { sessionKey?: string } | undefined;
       if (res?.sessionKey && res.sessionKey !== sk) {
         // sessionKey changed (e.g. server normalized it) — migrate state
         activeSessionKeyRef.current = res.sessionKey;
@@ -1550,6 +1562,18 @@ export function useGateway() {
     await rpc('config.set', { key: 'model', value: newModel });
     setModel(newModel);
   }, [rpc]);
+
+  const setTabModel = useCallback((sessionKey: string, providerName: string, model: string, ollamaBaseUrl?: string) => {
+    setSessionStates(prev => ({
+      ...prev,
+      [sessionKey]: {
+        ...(prev[sessionKey] || DEFAULT_SESSION_STATE),
+        providerOverride: providerName,
+        modelOverride: model,
+        ollamaBaseUrlOverride: ollamaBaseUrl,
+      },
+    }));
+  }, []);
 
   const setConfig = useCallback(async (key: string, value: unknown) => {
     // optimistic local update
@@ -1826,6 +1850,7 @@ export function useGateway() {
     }, []),
     model,
     changeModel,
+    setTabModel,
     configData,
     setConfig,
     refreshConfig,
