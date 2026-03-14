@@ -632,6 +632,18 @@ export async function startGateway(opts: GatewayOptions): Promise<Gateway> {
   };
   const pendingReauths = new Map<string, PendingReauth>(); // keyed by chatId
 
+  // desktop runs that failed due to auth — retried after successful re-auth
+  type PendingDesktopReauth = {
+    prompt: string;
+    images?: Array<{ data: string; mediaType: string }>;
+    sessionKey: string;
+    source: string;
+    modelOverride?: string;
+    providerOverride?: string;
+    ollamaBaseUrlOverride?: string;
+  };
+  const pendingDesktopReauths = new Map<string, PendingDesktopReauth>(); // keyed by sessionKey
+
   function runRefKey(channel: string, chatId: string, messageId: string): string {
     return `${channel}:${chatId}:${messageId}`;
   }
@@ -2128,6 +2140,9 @@ export async function startGateway(opts: GatewayOptions): Promise<Gateway> {
     const authMethod = getActiveAuthMethod();
     if (authMethod === 'dorabot_oauth' && isOAuthTokenExpired()) {
       console.log(`[gateway] token expired pre-run, triggering re-auth for ${source}`);
+      if (!channel) {
+        pendingDesktopReauths.set(sessionKey, { prompt, images, sessionKey, source, modelOverride, providerOverride, ollamaBaseUrlOverride });
+      }
       await startReauthFlow({ prompt, sessionKey, source, channel, chatId: messageMetadata?.chatId, messageMetadata }).catch(() => {});
       return null;
     }
@@ -2718,6 +2733,9 @@ export async function startGateway(opts: GatewayOptions): Promise<Gateway> {
         finishTaskRun(sessionKey, 'error', errMsg);
         if (isAuthError(err)) {
           console.log(`[gateway] auth error for ${source}, starting re-auth flow`);
+          if (!channel) {
+            pendingDesktopReauths.set(sessionKey, { prompt, images, sessionKey, source, modelOverride, providerOverride, ollamaBaseUrlOverride });
+          }
           await startReauthFlow({ prompt, sessionKey, source, channel, chatId: messageMetadata?.chatId, messageMetadata }).catch(() => {});
         }
         const errorEvent: WsEvent = {
@@ -2956,6 +2974,21 @@ export async function startGateway(opts: GatewayOptions): Promise<Gateway> {
           if (!h.interrupt) return { id, error: 'interrupt not supported by current provider' };
           await h.interrupt();
           return { id, result: { interrupted: true, sessionKey: sk } };
+        }
+
+        case 'session.reset': {
+          // Force-reset a session's run state — aborts any active run and broadcasts
+          // idle status so the UI can recover from desync without a full restart.
+          const sk = params?.sessionKey as string;
+          if (!sk) return { id, error: 'sessionKey required' };
+          const ac = activeAbortControllers.get(sk);
+          if (ac) {
+            ac.abort();
+            console.log(`[gateway] session reset (aborted active run): sessionKey=${sk}`);
+          }
+          cancelPendingQuestionsForSession(sk);
+          broadcast({ event: 'status.update', data: { activeRun: false, source: 'reset', sessionKey: sk } });
+          return { id, result: { reset: true, sessionKey: sk, hadActiveRun: !!ac } };
         }
 
         case 'agent.setModel': {
@@ -4359,6 +4392,13 @@ export async function startGateway(opts: GatewayOptions): Promise<Gateway> {
             const p = await getProviderByName(providerName);
             const status = await p.loginWithApiKey(apiKey);
             broadcast({ event: 'provider.auth_complete', data: { provider: providerName, status } });
+            if (status.authenticated && pendingDesktopReauths.size > 0) {
+              console.log(`[gateway] api key auth complete, retrying ${pendingDesktopReauths.size} pending desktop run(s)`);
+              for (const pending of pendingDesktopReauths.values()) {
+                handleAgentRun(pending);
+              }
+              pendingDesktopReauths.clear();
+            }
             return { id, result: status };
           } catch (err) {
             return { id, error: err instanceof Error ? err.message : String(err) };
@@ -4390,6 +4430,13 @@ export async function startGateway(opts: GatewayOptions): Promise<Gateway> {
             }
             const status = await p.completeOAuthLogin(loginId);
             broadcast({ event: 'provider.auth_complete', data: { provider: providerName, status } });
+            if (status.authenticated && pendingDesktopReauths.size > 0) {
+              console.log(`[gateway] re-auth complete, retrying ${pendingDesktopReauths.size} pending desktop run(s)`);
+              for (const pending of pendingDesktopReauths.values()) {
+                handleAgentRun(pending);
+              }
+              pendingDesktopReauths.clear();
+            }
             return { id, result: status };
           } catch (err) {
             return { id, error: err instanceof Error ? err.message : String(err) };

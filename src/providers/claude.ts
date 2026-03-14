@@ -145,6 +145,7 @@ type OAuthTokens = {
 let nextRefreshAt: number | null = null;
 let refreshTimer: ReturnType<typeof setTimeout> | null = null;
 let reconnectRequired = false;
+let refreshFailCount = 0; // for exponential backoff
 const authRequiredListeners = new Set<(reason: string) => void>();
 
 function emitAuthRequired(reason: string): void {
@@ -197,6 +198,7 @@ function loadOAuthTokens(): OAuthTokens | null {
 
 function persistOAuthTokens(tokens: OAuthTokens): void {
   reconnectRequired = false;
+  refreshFailCount = 0;
   const savedToKeychain = keychainStore(KEYCHAIN_OAUTH_ACCOUNT, JSON.stringify(tokens));
   if (savedToKeychain) {
     scheduleTokenRefresh(tokens);
@@ -263,12 +265,16 @@ async function refreshAccessToken(refreshToken: string): Promise<OAuthTokens | n
   }
 }
 
+const REFRESH_BACKOFF_BASE_MS = 30_000;   // 30s initial retry delay
+const REFRESH_BACKOFF_MAX_MS  = 1_800_000; // 30 min cap
+
 function scheduleTokenRefresh(tokens: OAuthTokens): void {
   if (refreshTimer) {
     clearTimeout(refreshTimer);
     refreshTimer = null;
   }
 
+  refreshFailCount = 0; // successful schedule — reset backoff counter
   const runAt = Math.max(Date.now() + 1_000, tokens.expires_at - REFRESH_LEAD_MS);
   nextRefreshAt = runAt;
   const delay = runAt - Date.now();
@@ -282,12 +288,49 @@ function scheduleTokenRefresh(tokens: OAuthTokens): void {
     }
     const refreshed = await refreshAccessToken(latest.refresh_token);
     if (!refreshed) {
+      refreshFailCount++;
+      const backoff = Math.min(REFRESH_BACKOFF_BASE_MS * 2 ** (refreshFailCount - 1), REFRESH_BACKOFF_MAX_MS);
+      console.log(`[claude] token refresh failed (attempt ${refreshFailCount}), retrying in ${backoff / 1000}s`);
       emitAuthRequired('OAuth refresh failed');
-      nextRefreshAt = null;
+      nextRefreshAt = Date.now() + backoff;
+      refreshTimer = setTimeout(async () => {
+        refreshTimer = null;
+        const retryTokens = loadOAuthTokens();
+        if (!retryTokens) return;
+        const retried = await refreshAccessToken(retryTokens.refresh_token);
+        if (retried) {
+          refreshFailCount = 0;
+          scheduleTokenRefresh(retried);
+        } else {
+          scheduleRetryRefresh(retryTokens);
+        }
+      }, backoff);
+      refreshTimer.unref?.();
       return;
     }
     scheduleTokenRefresh(refreshed);
   }, delay);
+  refreshTimer.unref?.();
+}
+
+function scheduleRetryRefresh(tokens: OAuthTokens): void {
+  refreshFailCount++;
+  const backoff = Math.min(REFRESH_BACKOFF_BASE_MS * 2 ** (refreshFailCount - 1), REFRESH_BACKOFF_MAX_MS);
+  console.log(`[claude] token refresh failed (attempt ${refreshFailCount}), retrying in ${backoff / 1000}s`);
+  nextRefreshAt = Date.now() + backoff;
+  refreshTimer = setTimeout(async () => {
+    refreshTimer = null;
+    const latest = loadOAuthTokens();
+    if (!latest) { emitAuthRequired('Missing OAuth tokens'); return; }
+    const refreshed = await refreshAccessToken(latest.refresh_token);
+    if (refreshed) {
+      refreshFailCount = 0;
+      scheduleTokenRefresh(refreshed);
+    } else {
+      emitAuthRequired('OAuth refresh failed');
+      scheduleRetryRefresh(latest);
+    }
+  }, backoff);
   refreshTimer.unref?.();
 }
 
@@ -297,10 +340,13 @@ async function ensureOAuthToken(): Promise<string | null> {
   if (!tokens) return null;
 
   if (Date.now() > tokens.expires_at - 300_000) {
+    // If a previous refresh already failed, don't spam — the backoff timer will retry.
+    if (reconnectRequired) return null;
     console.log('[claude] access token expired or expiring, refreshing...');
     const refreshed = await refreshAccessToken(tokens.refresh_token);
     if (!refreshed) {
       emitAuthRequired('OAuth token expired');
+      scheduleRetryRefresh(tokens);
       return null;
     }
     scheduleTokenRefresh(refreshed);

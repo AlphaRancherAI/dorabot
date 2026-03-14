@@ -1538,14 +1538,26 @@ export function useGateway() {
       // try graceful interrupt first (stops generation, keeps session alive)
       await rpc('agent.interrupt', { sessionKey: sk });
     } catch {
-      // fall back to hard abort if interrupt not supported
       try {
         await rpc('agent.abort', { sessionKey: sk });
-      } catch (err) {
-        console.error('failed to abort:', err);
+      } catch {
+        // Gateway has no active run — UI is desynced. Force-reset via session.reset
+        // which broadcasts an idle status.update so all clients recover.
+        try {
+          await rpc('session.reset', { sessionKey: sk });
+        } catch {
+          // Gateway unreachable — force-idle locally as last resort
+          if (sk) {
+            setSessionStates(prev => {
+              const state = prev[sk];
+              if (!state) return prev;
+              return { ...prev, [sk]: { ...state, agentStatus: 'idle', pendingQuestion: null } };
+            });
+          }
+        }
       }
     }
-  }, [rpc]);
+  }, [rpc, setSessionStates]);
 
   const newSession = useCallback(() => {
     const newChatId = crypto.randomUUID();

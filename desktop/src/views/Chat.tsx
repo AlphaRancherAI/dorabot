@@ -1001,6 +1001,18 @@ export function ChatView({ gateway, chatItems, agentStatus, pendingQuestion, ses
         }}
       />
 
+      {/* thinking indicator — visible whenever the agent is running */}
+      {isRunning && (
+        <div className="flex items-center gap-2 px-4 py-1.5 text-[11px] text-muted-foreground border-t border-border/40 shrink-0">
+          <span className="flex gap-0.5">
+            <span className="w-1 h-1 rounded-full bg-muted-foreground animate-bounce" style={{ animationDelay: '0ms' }} />
+            <span className="w-1 h-1 rounded-full bg-muted-foreground animate-bounce" style={{ animationDelay: '150ms' }} />
+            <span className="w-1 h-1 rounded-full bg-muted-foreground animate-bounce" style={{ animationDelay: '300ms' }} />
+          </span>
+          <span className="truncate">{agentStatus}</span>
+        </div>
+      )}
+
       {/* question panel — show during streaming or when pending */}
       {pendingQuestion ? (
         <AskUserQuestionPanel

@@ -1,4 +1,4 @@
-import { app, BrowserWindow, Tray, Menu, nativeImage, session, ipcMain, Notification as ElectronNotification } from 'electron';
+import { app, BrowserWindow, Tray, Menu, nativeImage, session, ipcMain, shell, Notification as ElectronNotification } from 'electron';
 import { autoUpdater } from 'electron-updater';
 import { is } from '@electron-toolkit/utils';
 import * as path from 'path';
@@ -160,6 +160,19 @@ function createWindow(): void {
         }
       }
     }, 1000);
+  });
+
+  // Open all external links in the OS browser instead of navigating inside Electron
+  mainWindow.webContents.setWindowOpenHandler(({ url }) => {
+    shell.openExternal(url);
+    return { action: 'deny' };
+  });
+  mainWindow.webContents.on('will-navigate', (event, url) => {
+    const appUrl = is.dev ? process.env['ELECTRON_RENDERER_URL'] : `file://${path.join(__dirname, '../renderer/index.html')}`;
+    if (!url.startsWith(appUrl || 'file://')) {
+      event.preventDefault();
+      shell.openExternal(url);
+    }
   });
 
   // Intercept Cmd+W: prevent window close, tell renderer to close a tab instead
