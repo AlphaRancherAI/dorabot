@@ -398,9 +398,12 @@ export type AuthMethod = 'api_key' | 'cli_keychain' | 'dorabot_oauth' | 'none';
 /** Determine which auth method will be used (no side effects) */
 export function getActiveAuthMethod(): AuthMethod {
   if (getApiKey()) return 'api_key';
-  if (cliHasOwnAuth()) return 'cli_keychain';
+  // Prefer dorabot's own OAuth tokens when they exist — we manage refresh
+  // and can guarantee a fresh token for each run. cli_keychain is a fallback
+  // for users who have never set up dorabot OAuth.
   const tokens = loadOAuthTokens();
   if (tokens?.access_token) return 'dorabot_oauth';
+  if (cliHasOwnAuth()) return 'cli_keychain';
   return 'none';
 }
 
@@ -668,7 +671,12 @@ export class ClaudeProvider implements Provider {
     // refresh env token for dorabot_oauth only (cli_keychain handles its own)
     const method = getActiveAuthMethod();
     if (method === 'dorabot_oauth') {
-      await ensureOAuthToken();
+      const freshToken = await ensureOAuthToken();
+      // Update the env snapshot passed from agent.ts — it was captured before
+      // ensureOAuthToken() ran, so it may have a stale/missing token.
+      if (freshToken && opts.env) {
+        opts.env.CLAUDE_CODE_OAUTH_TOKEN = freshToken;
+      }
     }
 
     // ── Async generator message feed (buffett pattern) ──────────────

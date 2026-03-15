@@ -86,6 +86,7 @@ export default function App() {
   const [showFiles, setShowFiles] = useState(false);
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
   const [sessionFilter, setSessionFilter] = useState<SessionFilter>('all');
+  const [showArchived, setShowArchived] = useState(false);
   const [selectedChannel, setSelectedChannel] = useState<'whatsapp' | 'telegram'>('whatsapp');
   const [showOnboarding, setShowOnboarding] = useState(false);
   const onboardingCheckedRef = useRef(false);
@@ -335,10 +336,27 @@ export default function App() {
     return () => { gw.onNotifiableEventRef.current = null; };
   }, [gw.onNotifiableEventRef, notify, tabState]);
 
-  const filteredSessions = useMemo(() => {
-    if (sessionFilter === 'all') return gw.sessions;
-    return gw.sessions.filter(s => (s.channel || 'desktop') === sessionFilter);
+  const ARCHIVE_CUTOFF_MS = 14 * 24 * 60 * 60 * 1000; // 2 weeks
+  const { recentSessions, archivedSessions } = useMemo(() => {
+    const channelFiltered = sessionFilter === 'all'
+      ? gw.sessions
+      : gw.sessions.filter(s => (s.channel || 'desktop') === sessionFilter);
+    const cutoff = Date.now() - ARCHIVE_CUTOFF_MS;
+    const recent: typeof gw.sessions = [];
+    const archived: typeof gw.sessions = [];
+    for (const s of channelFiltered) {
+      const updatedMs = new Date(s.updatedAt).getTime();
+      if (!s.activeRun && updatedMs < cutoff) {
+        archived.push(s);
+      } else {
+        recent.push(s);
+      }
+    }
+    return { recentSessions: recent, archivedSessions: archived };
   }, [gw.sessions, sessionFilter]);
+  const filteredSessions = showArchived
+    ? [...recentSessions, ...archivedSessions]
+    : recentSessions;
 
   // Track which sessions are visible across all panes (for sidebar highlighting)
   const visibleSessionIds = useMemo(() => {
@@ -948,6 +966,14 @@ export default function App() {
                     );
                   })}
                 </ScrollArea>
+                {archivedSessions.length > 0 && (
+                  <button
+                    className="shrink-0 w-full text-center text-[9px] text-muted-foreground/60 hover:text-muted-foreground py-1 transition-colors"
+                    onClick={() => setShowArchived(v => !v)}
+                  >
+                    {showArchived ? `hide ${archivedSessions.length} archived` : `show ${archivedSessions.length} archived`}
+                  </button>
+                )}
               </>
             )}
 

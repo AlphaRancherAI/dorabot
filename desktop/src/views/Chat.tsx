@@ -23,7 +23,7 @@ import {
   Globe, Search, Bot, MessageCircle, ListChecks, FileCode,
   MessageSquare, Camera, Monitor, Clock, Wrench, ArrowUp, LayoutGrid,
   Smile, Image, Brain, MapPin, PenLine, GitPullRequest, Radio,
-  Paperclip, X, Cpu,
+  Paperclip, X, Cpu, RefreshCw,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -690,6 +690,8 @@ export function ChatView({ gateway, chatItems, agentStatus, pendingQuestion, ses
   const isRunning = agentStatus !== 'idle';
   const isEmpty = chatItems.length === 0;
   const connected = gateway.connectionState === 'connected';
+  const authHealth = gateway.providerInfo?.auth?.tokenHealth;
+  const authNeedsRenewal = gateway.providerInfo?.auth?.reconnectRequired || authHealth === 'expired';
 
   useEffect(() => {
     const el = landingRef.current;
@@ -1076,6 +1078,15 @@ export function ChatView({ gateway, chatItems, agentStatus, pendingQuestion, ses
               <Paperclip className="w-4 h-4 text-muted-foreground" />
             </Button>
             <span className="flex-1" />
+            <Button
+              variant="ghost"
+              size="sm"
+              className={cn('h-8 w-8 p-0 rounded-lg mr-1', authNeedsRenewal && 'text-destructive hover:text-destructive')}
+              onClick={onNavigateSettings}
+              title={authNeedsRenewal ? 'Auth token expired — click to re-authenticate' : 'Provider settings'}
+            >
+              <RefreshCw className={cn('w-4 h-4', authNeedsRenewal ? 'text-destructive' : 'text-muted-foreground')} />
+            </Button>
             {isRunning ? (
               <Button
                 size="sm"
