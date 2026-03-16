@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { dorabotImg, whatsappImg, telegramImg } from './assets';
 import { useGateway, type NotifiableEvent } from './hooks/useGateway';
 import { useTabs, isChatTab } from './hooks/useTabs';
@@ -1063,16 +1064,16 @@ export default function App() {
         )}
       </ResizablePanelGroup>
 
-      {/* Session right-click context menu */}
-      {sessionCtxMenu && (
+      {/* Session right-click context menu — rendered via portal to avoid stacking context issues */}
+      {sessionCtxMenu && createPortal(
         <div
-          className="fixed inset-0 z-50"
+          style={{ position: 'fixed', inset: 0, zIndex: 9999 }}
           onClick={() => setSessionCtxMenu(null)}
           onContextMenu={(e) => { e.preventDefault(); setSessionCtxMenu(null); }}
         >
           <div
-            className="absolute bg-popover border border-border rounded-md shadow-lg py-1 min-w-[140px]"
-            style={{ left: sessionCtxMenu.x, top: sessionCtxMenu.y }}
+            style={{ position: 'absolute', left: sessionCtxMenu.x, top: sessionCtxMenu.y }}
+            className="bg-popover border border-border rounded-md shadow-lg py-1 min-w-[160px] font-mono"
             onClick={(e) => e.stopPropagation()}
           >
             <button
@@ -1085,7 +1086,8 @@ export default function App() {
               Abort / reset session
             </button>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </TooltipProvider>
   );
