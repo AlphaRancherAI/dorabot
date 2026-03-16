@@ -87,6 +87,7 @@ export default function App() {
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
   const [sessionFilter, setSessionFilter] = useState<SessionFilter>('all');
   const [showArchived, setShowArchived] = useState(false);
+  const [sessionCtxMenu, setSessionCtxMenu] = useState<{ id: string; sessionKey: string; x: number; y: number } | null>(null);
   const [selectedChannel, setSelectedChannel] = useState<'whatsapp' | 'telegram'>('whatsapp');
   const [showOnboarding, setShowOnboarding] = useState(false);
   const onboardingCheckedRef = useRef(false);
@@ -933,6 +934,7 @@ export default function App() {
                     const isActive = tabState.activeTab && isChatTab(tabState.activeTab) && tabState.activeTab.sessionId === s.id;
                     const isVisible = !isActive && visibleSessionIds.has(s.id);
                     const unread = unreadBySessionId[s.id] || 0;
+                    const derivedSessionKey = s.sessionKey || `${s.channel || 'desktop'}:${s.chatType || 'dm'}:${s.chatId}`;
                     return (
                       <button
                         key={s.id}
@@ -944,6 +946,7 @@ export default function App() {
                             : 'text-muted-foreground hover:bg-secondary/50'
                         }`}
                         onClick={() => handleViewSession(s.id, s.channel, s.chatId, s.chatType)}
+                        onContextMenu={(e) => { e.preventDefault(); setSessionCtxMenu({ id: s.id, sessionKey: derivedSessionKey, x: e.clientX, y: e.clientY }); }}
                         title={`${s.channel || 'desktop'} | ${s.messageCount} msgs | ${new Date(s.updatedAt).toLocaleString()}`}
                       >
                         <span className="w-3 h-3 shrink-0 flex items-center justify-center">{channelIcon(s.channel)}</span>
@@ -1059,6 +1062,31 @@ export default function App() {
           </>
         )}
       </ResizablePanelGroup>
+
+      {/* Session right-click context menu */}
+      {sessionCtxMenu && (
+        <div
+          className="fixed inset-0 z-50"
+          onClick={() => setSessionCtxMenu(null)}
+          onContextMenu={(e) => { e.preventDefault(); setSessionCtxMenu(null); }}
+        >
+          <div
+            className="absolute bg-popover border border-border rounded-md shadow-lg py-1 min-w-[140px]"
+            style={{ left: sessionCtxMenu.x, top: sessionCtxMenu.y }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              className="w-full text-left px-3 py-1.5 text-[11px] hover:bg-secondary transition-colors text-destructive"
+              onClick={async () => {
+                setSessionCtxMenu(null);
+                await gw.abortAgent(sessionCtxMenu.sessionKey);
+              }}
+            >
+              Abort / reset session
+            </button>
+          </div>
+        </div>
+      )}
     </TooltipProvider>
   );
 }

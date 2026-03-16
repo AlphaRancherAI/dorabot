@@ -131,6 +131,7 @@ export type SessionInfo = {
   senderName?: string;
   preview?: string;
   activeRun?: boolean;
+  sessionKey?: string;
 };
 
 export type AskUserQuestion = {
@@ -1388,7 +1389,28 @@ export function useGateway() {
     }).catch(() => {});
     rpc('sessions.list').then((res) => {
       const arr = res as SessionInfo[];
-      if (Array.isArray(arr)) setSessions(arr);
+      if (Array.isArray(arr)) {
+        setSessions(arr);
+        // On reconnect, sync agentStatus for sessions still running
+        // (may have missed status.update events while disconnected)
+        const activeKeys = arr
+          .filter(s => s.activeRun && s.sessionKey)
+          .map(s => s.sessionKey as string);
+        if (activeKeys.length > 0) {
+          setSessionStates(prev => {
+            let changed = false;
+            const next = { ...prev };
+            for (const sk of activeKeys) {
+              const state = next[sk];
+              if (state && state.agentStatus === 'idle') {
+                next[sk] = { ...state, agentStatus: 'running (agent)' };
+                changed = true;
+              }
+            }
+            return changed ? next : prev;
+          });
+        }
+      }
     }).catch(() => {});
     rpc('channels.status').then((res) => {
       const arr = res as ChannelStatusInfo[];

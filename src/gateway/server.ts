@@ -2010,16 +2010,22 @@ export async function startGateway(opts: GatewayOptions): Promise<Gateway> {
       }
       updateQuestionState(requestId, 'pending', runSessionKey);
 
-      const answers = await new Promise<Record<string, string>>((resolveQ, rejectQ) => {
+      const answers = await new Promise<Record<string, string>>((resolveQ) => {
         const timeout = setTimeout(() => {
           if (pendingQuestions.has(requestId)) {
             const pending = pendingQuestions.get(requestId);
             pendingQuestions.delete(requestId);
             if (pending) updateQuestionState(requestId, 'timeout', pending.sessionKey);
-            rejectQ(new Error('Question timeout - no answer received'));
+            // Auto-answer with first option so the agent can continue rather than crashing
+            const autoAnswers: Record<string, string> = {};
+            for (const q of questions as any[]) {
+              const opts = (q.options || []) as { label: string }[];
+              autoAnswers[q.question || ''] = opts[0]?.label || '';
+            }
+            resolveQ(autoAnswers);
           }
         }, 300000);
-        pendingQuestions.set(requestId, { resolve: resolveQ, reject: rejectQ, sessionKey: runSessionKey, timeout });
+        pendingQuestions.set(requestId, { resolve: resolveQ, reject: () => {}, sessionKey: runSessionKey, timeout });
       });
       updateQuestionState(requestId, 'answered', runSessionKey, answers);
 
@@ -3146,14 +3152,16 @@ export async function startGateway(opts: GatewayOptions): Promise<Gateway> {
 
         case 'sessions.list': {
           const fileSessions = fileSessionManager.list();
-          const activeIds = new Set(
-            sessionRegistry.getActiveRunKeys()
-              .map(k => sessionRegistry.get(k)?.sessionId)
-              .filter(Boolean),
-          );
+          // Build map from sessionId -> sessionKey for active runs
+          const activeRunKeyBySessionId = new Map<string, string>();
+          for (const k of sessionRegistry.getActiveRunKeys()) {
+            const reg = sessionRegistry.get(k);
+            if (reg?.sessionId) activeRunKeyBySessionId.set(reg.sessionId, k);
+          }
           const result = fileSessions.map(s => ({
             ...s,
-            activeRun: activeIds.has(s.id),
+            activeRun: activeRunKeyBySessionId.has(s.id),
+            ...(activeRunKeyBySessionId.has(s.id) ? { sessionKey: activeRunKeyBySessionId.get(s.id) } : {}),
           }));
           return { id, result };
         }
