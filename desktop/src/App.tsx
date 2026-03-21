@@ -89,6 +89,11 @@ export default function App() {
   const [sessionFilter, setSessionFilter] = useState<SessionFilter>('all');
   const [showArchived, setShowArchived] = useState(false);
   const [sessionCtxMenu, setSessionCtxMenu] = useState<{ id: string; sessionKey: string; x: number; y: number } | null>(null);
+  const [sessionSearch, setSessionSearch] = useState('');
+  const [sessionSearchResults, setSessionSearchResults] = useState<string[] | null>(null);
+  const [renamingSessionId, setRenamingSessionId] = useState<string | null>(null);
+  const [renameValue, setRenameValue] = useState('');
+  const sessionSearchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [selectedChannel, setSelectedChannel] = useState<'whatsapp' | 'telegram'>('whatsapp');
   const [showOnboarding, setShowOnboarding] = useState(false);
   const onboardingCheckedRef = useRef(false);
@@ -191,6 +196,17 @@ export default function App() {
     const interval = setInterval(fetchStars, 5 * 60 * 1000);
     return () => clearInterval(interval);
   }, []);
+
+  // Debounced FTS search for sessions
+  useEffect(() => {
+    if (sessionSearchTimerRef.current) clearTimeout(sessionSearchTimerRef.current);
+    if (sessionSearch.trim().length < 2) { setSessionSearchResults(null); return; }
+    sessionSearchTimerRef.current = setTimeout(async () => {
+      const ids = await gw.searchSessions(sessionSearch);
+      setSessionSearchResults(ids);
+    }, 300);
+    return () => { if (sessionSearchTimerRef.current) clearTimeout(sessionSearchTimerRef.current); };
+  }, [sessionSearch, gw.searchSessions]);
 
   // Check provider auth on connect - show onboarding if not completed yet
   useEffect(() => {
@@ -356,9 +372,17 @@ export default function App() {
     }
     return { recentSessions: recent, archivedSessions: archived };
   }, [gw.sessions, sessionFilter]);
-  const filteredSessions = showArchived
+  const baseFilteredSessions = showArchived
     ? [...recentSessions, ...archivedSessions]
     : recentSessions;
+  const filteredSessions = sessionSearch.trim().length >= 2
+    ? baseFilteredSessions.filter(s => {
+        const q = sessionSearch.toLowerCase();
+        const matchesMeta = (s.label || s.senderName || s.preview || s.chatId || s.id).toLowerCase().includes(q);
+        const matchesFts = sessionSearchResults?.includes(s.id) ?? false;
+        return matchesMeta || matchesFts;
+      })
+    : baseFilteredSessions;
 
   // Track which sessions are visible across all panes (for sidebar highlighting)
   const visibleSessionIds = useMemo(() => {
@@ -929,6 +953,15 @@ export default function App() {
                       <option value="whatsapp">whatsapp</option>
                     </select>
                   </div>
+                  <div className="px-1 pb-1">
+                    <input
+                      type="text"
+                      value={sessionSearch}
+                      onChange={e => setSessionSearch(e.target.value)}
+                      placeholder="search sessions..."
+                      className="w-full text-[10px] bg-secondary/50 text-foreground placeholder:text-muted-foreground/50 border border-border/50 rounded px-2 py-0.5 outline-none focus:border-border"
+                    />
+                  </div>
                 </div>
                 <ScrollArea className="flex-1 min-h-0 px-2 pb-2">
                   {filteredSessions.slice(0, 30).map(s => {
@@ -936,8 +969,10 @@ export default function App() {
                     const isVisible = !isActive && visibleSessionIds.has(s.id);
                     const unread = unreadBySessionId[s.id] || 0;
                     const derivedSessionKey = s.sessionKey || `${s.channel || 'desktop'}:${s.chatType || 'dm'}:${s.chatId}`;
+                    const displayLabel = s.label || s.senderName || s.preview || s.chatId || s.id.slice(8, 16);
+                    const isRenaming = renamingSessionId === s.id;
                     return (
-                      <button
+                      <div
                         key={s.id}
                         className={`flex items-center gap-1.5 w-full px-2.5 py-1 rounded-md text-[10px] transition-colors ${
                           isActive
@@ -946,27 +981,52 @@ export default function App() {
                             ? 'bg-secondary/60 text-foreground/80'
                             : 'text-muted-foreground hover:bg-secondary/50'
                         }`}
-                        onClick={() => handleViewSession(s.id, s.channel, s.chatId, s.chatType)}
                         onContextMenu={(e) => { e.preventDefault(); setSessionCtxMenu({ id: s.id, sessionKey: derivedSessionKey, x: e.clientX, y: e.clientY }); }}
-                        title={`${s.channel || 'desktop'} | ${s.messageCount} msgs | ${new Date(s.updatedAt).toLocaleString()}`}
                       >
                         <span className="w-3 h-3 shrink-0 flex items-center justify-center">{channelIcon(s.channel)}</span>
-                        <span className="truncate flex-1 text-left">
-                          {s.senderName || s.preview || s.chatId || s.id.slice(8, 16)}
-                        </span>
-                        {unread > 0 && !s.activeRun && (
+                        {isRenaming ? (
+                          <input
+                            autoFocus
+                            className="flex-1 min-w-0 bg-transparent border-b border-border text-[10px] outline-none py-0"
+                            value={renameValue}
+                            onChange={e => setRenameValue(e.target.value)}
+                            onKeyDown={async (e) => {
+                              if (e.key === 'Enter') {
+                                await gw.renameSession(s.id, renameValue);
+                                setRenamingSessionId(null);
+                              } else if (e.key === 'Escape') {
+                                setRenamingSessionId(null);
+                              }
+                            }}
+                            onBlur={async () => {
+                              await gw.renameSession(s.id, renameValue);
+                              setRenamingSessionId(null);
+                            }}
+                            onClick={e => e.stopPropagation()}
+                          />
+                        ) : (
+                          <button
+                            className="truncate flex-1 text-left bg-transparent"
+                            onClick={() => handleViewSession(s.id, s.channel, s.chatId, s.chatType)}
+                            title={`${s.channel || 'desktop'} | ${s.messageCount} msgs | ${new Date(s.updatedAt).toLocaleString()}`}
+                            onDoubleClick={() => { setRenameValue(s.label || ''); setRenamingSessionId(s.id); }}
+                          >
+                            {s.label ? <span className="font-medium">{s.label}</span> : displayLabel}
+                          </button>
+                        )}
+                        {!isRenaming && unread > 0 && !s.activeRun && (
                           <span className="text-[9px] bg-primary text-primary-foreground rounded-full px-1.5 min-w-[16px] text-center">
                             {unread > 99 ? '99+' : unread}
                           </span>
                         )}
-                        {s.activeRun ? (
+                        {!isRenaming && (s.activeRun ? (
                           <Loader2 className="w-3 h-3 shrink-0 animate-spin text-primary" />
                         ) : (
                           <span className="text-[9px] text-muted-foreground shrink-0">
                             {new Date(s.updatedAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
                           </span>
-                        )}
-                      </button>
+                        ))}
+                      </div>
                     );
                   })}
                 </ScrollArea>
@@ -1076,6 +1136,17 @@ export default function App() {
             className="bg-popover border border-border rounded-md shadow-lg py-1 min-w-[160px] font-mono"
             onClick={(e) => e.stopPropagation()}
           >
+            <button
+              className="w-full text-left px-3 py-1.5 text-[11px] hover:bg-secondary transition-colors"
+              onClick={() => {
+                const s = gw.sessions.find(s => s.id === sessionCtxMenu.id);
+                setRenameValue(s?.label || '');
+                setRenamingSessionId(sessionCtxMenu.id);
+                setSessionCtxMenu(null);
+              }}
+            >
+              Rename
+            </button>
             <button
               className="w-full text-left px-3 py-1.5 text-[11px] hover:bg-secondary transition-colors text-destructive"
               onClick={async () => {

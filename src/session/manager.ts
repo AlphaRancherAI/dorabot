@@ -20,6 +20,7 @@ export type SessionInfo = {
   chatType?: string;
   senderName?: string;
   preview?: string;
+  label?: string;
 };
 
 export type MessageMetadata = {
@@ -200,6 +201,12 @@ export class SessionManager {
     run();
   }
 
+  setLabel(sessionId: string, label: string | null): void {
+    const db = getDb();
+    db.prepare('UPDATE sessions SET label = ?, updated_at = ? WHERE id = ?')
+      .run(label || null, new Date().toISOString(), sessionId);
+  }
+
   list(): SessionInfo[] {
     const db = getDb();
     const rows = db.prepare(`
@@ -209,6 +216,7 @@ export class SessionManager {
         s.chat_id,
         s.chat_type,
         s.sender_name,
+        s.label,
         s.message_count,
         s.created_at,
         s.updated_at,
@@ -227,6 +235,7 @@ export class SessionManager {
       chat_id: string | null;
       chat_type: string | null;
       sender_name: string | null;
+      label: string | null;
       message_count: number;
       created_at: string | null;
       updated_at: string | null;
@@ -243,6 +252,7 @@ export class SessionManager {
       chatId: row.chat_id || undefined,
       chatType: row.chat_type || undefined,
       senderName: row.sender_name || undefined,
+      label: row.label || undefined,
       preview: extractFirstUserPreview(row.first_user_content),
     }));
   }

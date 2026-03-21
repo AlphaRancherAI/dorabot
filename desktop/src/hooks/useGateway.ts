@@ -132,6 +132,7 @@ export type SessionInfo = {
   preview?: string;
   activeRun?: boolean;
   sessionKey?: string;
+  label?: string;
 };
 
 export type AskUserQuestion = {
@@ -1170,6 +1171,14 @@ export function useGateway() {
         break;
       }
 
+      case 'session.renamed': {
+        const d = data as { sessionId: string; label: string | null };
+        setSessions(prev => prev.map(s =>
+          s.id === d.sessionId ? { ...s, label: d.label || undefined } : s
+        ));
+        break;
+      }
+
       case 'config.update': {
         const d = data as { key: string; value: unknown };
         setConfigData(prev => prev ? setNestedKey(prev, d.key, d.value) : prev);
@@ -1937,5 +1946,17 @@ export function useGateway() {
     checkProvider,
     getProviderAuth,
     detectProviders,
+    renameSession: useCallback(async (sessionId: string, label: string) => {
+      await rpc('session.rename', { sessionId, label: label.trim() || null });
+    }, [rpc]),
+    searchSessions: useCallback(async (query: string): Promise<string[]> => {
+      if (query.trim().length < 2) return [];
+      try {
+        const result = await rpc('sessions.search', { query });
+        return Array.isArray(result) ? result as string[] : [];
+      } catch {
+        return [];
+      }
+    }, [rpc]),
   };
 }

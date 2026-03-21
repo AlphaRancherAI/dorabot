@@ -116,6 +116,9 @@ export function getDb(): Database.Database {
     );
   `);
 
+  // Migrations — ALTER TABLE is idempotent via try/catch
+  try { db.exec('ALTER TABLE sessions ADD COLUMN label TEXT'); } catch {}
+
   return db;
 }
 

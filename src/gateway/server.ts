@@ -3166,6 +3166,38 @@ export async function startGateway(opts: GatewayOptions): Promise<Gateway> {
           return { id, result };
         }
 
+        case 'session.rename': {
+          const sessionId = params?.sessionId as string;
+          const label = params?.label as string | null;
+          if (!sessionId) return { id, error: 'sessionId required' };
+          fileSessionManager.setLabel(sessionId, label || null);
+          broadcast({ event: 'session.renamed', data: { sessionId, label: label || null } });
+          return { id, result: { ok: true } };
+        }
+
+        case 'sessions.search': {
+          const query = (params?.query as string || '').trim();
+          if (query.length < 2) return { id, result: [] };
+          try {
+            const { getDb: db_ } = await import('../db.js');
+            const db = db_();
+            // Sanitize for FTS5: keep alphanumeric and spaces, prefix match on last term
+            const terms = query.replace(/[^\w\s]/g, ' ').trim().split(/\s+/).filter(Boolean);
+            if (!terms.length) return { id, result: [] };
+            const ftsQuery = terms.map((t, i) => i === terms.length - 1 ? `"${t}"*` : `"${t}"`).join(' ');
+            const rows = db.prepare(`
+              SELECT DISTINCT m.session_id
+              FROM messages_fts
+              JOIN messages m ON messages_fts.rowid = m.id
+              WHERE messages_fts MATCH ?
+              LIMIT 50
+            `).all(ftsQuery) as { session_id: string }[];
+            return { id, result: rows.map(r => r.session_id) };
+          } catch {
+            return { id, result: [] };
+          }
+        }
+
         case 'sessions.get': {
           const sessionId = params?.sessionId as string;
           if (!sessionId) return { id, error: 'sessionId required' };
