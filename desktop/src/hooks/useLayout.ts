@@ -267,6 +267,22 @@ export function useLayout() {
     });
   }, []);
 
+  // Reorder a tab within its group (move tabId before targetTabId)
+  const reorderTabInGroup = useCallback((groupId: GroupId, tabId: string, targetTabId: string) => {
+    if (tabId === targetTabId) return;
+    setState(prev => {
+      const groups = prev.groups.map(g => {
+        if (g.id !== groupId) return g;
+        const ids = g.tabIds.filter(id => id !== tabId);
+        const insertIdx = ids.indexOf(targetTabId);
+        if (insertIdx < 0) return g;
+        ids.splice(insertIdx, 0, tabId);
+        return { ...g, tabIds: ids };
+      });
+      return { ...prev, groups };
+    });
+  }, []);
+
   // Navigate focus between groups
   const focusGroupDirection = useCallback((direction: 'left' | 'right' | 'up' | 'down') => {
     setState(prev => {
@@ -319,5 +335,6 @@ export function useLayout() {
     focusGroupDirection,
     collapseGroup,
     updateGroup,
+    reorderTabInGroup,
   };
 }

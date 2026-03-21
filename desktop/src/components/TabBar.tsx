@@ -45,10 +45,20 @@ function DraggableTab({
   onFocusTab: (id: string) => void;
   onCloseTab: (id: string) => void;
 }) {
-  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
+  const { attributes, listeners, setNodeRef: setDragRef, isDragging } = useDraggable({
     id: `tab:${tab.id}`,
     data: { tabId: tab.id, sourceGroupId: groupId },
   });
+
+  const { setNodeRef: setDropRef, isOver } = useDroppable({
+    id: `tab-reorder:${tab.id}:${groupId || 'default'}`,
+    data: { targetTabId: tab.id, groupId },
+  });
+
+  const setNodeRef = (el: HTMLElement | null) => {
+    setDragRef(el);
+    setDropRef(el);
+  };
 
   return (
     <div
@@ -59,6 +69,7 @@ function DraggableTab({
         'group relative flex items-center gap-1.5 px-3 h-[34px] text-[11px] font-mono border-r border-border/50 cursor-grab transition-colors select-none',
         'max-w-[180px] min-w-[80px] shrink-0',
         isDragging && 'opacity-30',
+        isOver && !isDragging && 'border-l-2 border-l-primary',
         isActive
           ? 'bg-background text-foreground'
           : 'text-muted-foreground hover:bg-secondary/50 hover:text-foreground',

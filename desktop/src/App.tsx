@@ -554,6 +554,20 @@ export default function App() {
       }
     };
 
+    // Dropped on another tab — reorder within group
+    if (overId.startsWith('tab-reorder:')) {
+      const targetTabId = over.data.current?.targetTabId as string;
+      const targetGroupId = over.data.current?.groupId as GroupId;
+      if (targetTabId && targetGroupId && tabId !== targetTabId) {
+        if (sourceGroupId && sourceGroupId !== targetGroupId) {
+          // Cross-group: move first, then reorder
+          layout.moveTabToGroup(tabId, sourceGroupId, targetGroupId);
+        }
+        layout.reorderTabInGroup(targetGroupId, tabId, targetTabId);
+      }
+      return;
+    }
+
     // Dropped on a group's tab bar — move tab to that group
     if (overId.startsWith('group-drop:')) {
       const targetGroupId = over.data.current?.groupId as GroupId;
