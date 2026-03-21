@@ -209,6 +209,17 @@ export default function App() {
     return () => { if (sessionSearchTimerRef.current) clearTimeout(sessionSearchTimerRef.current); };
   }, [sessionSearch, gw.searchSessions]);
 
+  // Sync tab labels when session labels change
+  useEffect(() => {
+    for (const tab of tabState.tabs) {
+      if (!isChatTab(tab) || !tab.sessionId) continue;
+      const session = gw.sessions.find(s => s.id === tab.sessionId);
+      if (!session) continue;
+      const newLabel = session.label || session.senderName || session.preview || tab.sessionId.slice(8, 16);
+      if (newLabel !== tab.label) tabState.updateTabLabel(tab.id, newLabel);
+    }
+  }, [gw.sessions]);
+
   // Check provider auth on connect - show onboarding if not completed yet
   useEffect(() => {
     if (gw.connectionState === 'connected' && gw.providerInfo && !onboardingCheckedRef.current) {
@@ -428,7 +439,7 @@ export default function App() {
     const cid = chatId || sessionId;
     const sessionKey = `${ch}:${ct}:${cid}`;
     const session = gw.sessions.find(s => s.id === sessionId);
-    const label = session?.senderName || session?.preview || sessionId.slice(8, 16);
+    const label = session?.label || session?.senderName || session?.preview || sessionId.slice(8, 16);
 
     tabState.openChatTab({
       sessionId,
