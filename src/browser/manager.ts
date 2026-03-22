@@ -14,6 +14,7 @@ export type BrowserConfig = {
   cdpPort?: number;
   profileDir?: string;
   headless?: boolean;
+  settleTimeout?: number;
 };
 
 const DEFAULT_CDP_PORT = 19222;

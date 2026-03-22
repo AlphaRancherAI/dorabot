@@ -38,6 +38,7 @@ import {
   browserPdf,
   browserScroll,
   acquireBrowserMutex,
+  setSettleTimeout,
 } from '../browser/actions.js';
 
 // browser config loaded at runtime, set by gateway/startup
@@ -45,6 +46,9 @@ let browserConfig: BrowserConfig = {};
 
 export function setBrowserConfig(config: BrowserConfig) {
   browserConfig = config;
+  if (config.settleTimeout !== undefined) {
+    setSettleTimeout(config.settleTimeout);
+  }
 }
 
 const browserActions = [

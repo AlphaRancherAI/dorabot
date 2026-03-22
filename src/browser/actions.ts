@@ -211,12 +211,19 @@ function preserveHistory<T>(history: T[][], current: T[], max = 3) {
 // Waits for network idle + no pending navigations before returning.
 const DEFAULT_SETTLE_TIMEOUT = 5_000;
 
+// Configurable via browser.settleTimeout in config.json
+let configuredSettleTimeout: number | undefined;
+
+export function setSettleTimeout(ms: number | undefined) {
+  configuredSettleTimeout = ms;
+}
+
 async function waitForEventsAfterAction(
   page: Page,
   action: () => Promise<unknown>,
   opts: { timeout?: number } = {},
 ): Promise<void> {
-  const timeout = opts.timeout ?? DEFAULT_SETTLE_TIMEOUT;
+  const timeout = opts.timeout ?? configuredSettleTimeout ?? DEFAULT_SETTLE_TIMEOUT;
 
   // Run action and wait for network to settle
   await Promise.race([

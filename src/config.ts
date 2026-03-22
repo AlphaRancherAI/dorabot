@@ -104,6 +104,7 @@ export type BrowserConfig = {
   cdpPort?: number;
   profileDir?: string;
   headless?: boolean;
+  settleTimeout?: number;
 };
 
 export type AutonomyMode = 'supervised' | 'autonomous';
