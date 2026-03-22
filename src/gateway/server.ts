@@ -25,7 +25,7 @@ import { getDefaultAuthDir } from '../channels/whatsapp/session.js';
 import { validateTelegramToken } from '../channels/telegram/bot.js';
 import { insertEvent, queryEventsBySessionCursor, deleteEventsUpToSeq, cleanupOldEvents } from './event-log.js';
 import { getChannelHandler } from '../tools/messaging.js';
-import { setScheduler } from '../tools/index.js';
+import { setScheduler, setBrowserConfig } from '../tools/index.js';
 import { loadPlans, savePlans, type Plan, appendPlanLog, readPlanLogs, readPlanDoc, createPlanFromIdea } from '../tools/plans.js';
 import { loadIdeas, saveIdeas } from '../ideas/tools.js';
 import { loadGoals, saveGoals, type Goal } from '../tools/goals.js';
@@ -276,6 +276,11 @@ export async function startGateway(opts: GatewayOptions): Promise<Gateway> {
   const startedAt = Date.now();
   ensureWorkspace();
   mkdirSync(dirname(socketPath), { recursive: true });
+
+  // wire browser config so it uses the right executable
+  if (config.browser) {
+    setBrowserConfig(config.browser);
+  }
 
   // stable gateway auth token — reuse existing, only generate on first run
   const tokenPath = GATEWAY_TOKEN_PATH;
