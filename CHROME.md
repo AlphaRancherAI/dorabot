@@ -25,7 +25,8 @@ In `~/.dorabot2/config.json`:
   "browser": {
     "enabled": true,
     "headless": true,
-    "executablePath": "/Applications/Google Chrome Canary.app/Contents/MacOS/Google Chrome Canary"
+    "executablePath": "/Applications/Google Chrome Canary.app/Contents/MacOS/Google Chrome Canary",
+    "settleTimeout": 500
   }
 }
 ```
