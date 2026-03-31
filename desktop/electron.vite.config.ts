@@ -35,6 +35,9 @@ export default defineConfig({
         '@': path.resolve(__dirname, './src')
       }
     },
-    plugins: [react(), tailwindcss()]
+    plugins: [react(), tailwindcss()],
+    optimizeDeps: {
+      include: ['@radix-ui/react-slot', 'class-variance-authority']
+    }
   }
 })
