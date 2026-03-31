@@ -2,9 +2,10 @@ import { useState, useEffect } from 'react';
 import type { useGateway } from '../hooks/useGateway';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { BentoGrid, BentoGridItem } from '@/components/aceternity/bento-grid';
-import { Shield, Wifi, Radio, Database, FileJson } from 'lucide-react';
+import { Shield, Wifi, Radio, Database, FileJson, RotateCcw } from 'lucide-react';
 
 type Props = {
   gateway: ReturnType<typeof useGateway>;
@@ -12,6 +13,7 @@ type Props = {
 
 export function StatusView({ gateway }: Props) {
   const [statusData, setStatusData] = useState<Record<string, unknown> | null>(null);
+  const [restarting, setRestarting] = useState(false);
 
   useEffect(() => {
     if (gateway.connectionState !== 'connected') return;
@@ -19,6 +21,15 @@ export function StatusView({ gateway }: Props) {
       .then(res => setStatusData(res as Record<string, unknown>))
       .catch(() => {});
   }, [gateway.connectionState, gateway.rpc]);
+
+  const handleRestart = async () => {
+    setRestarting(true);
+    try {
+      await window.electronAPI?.gatewayRestart?.();
+    } finally {
+      setTimeout(() => setRestarting(false), 3000);
+    }
+  };
 
   const hasToken = gateway.connectionState === 'connected';
 
@@ -29,6 +40,18 @@ export function StatusView({ gateway }: Props) {
         <Badge variant={gateway.connectionState === 'connected' ? 'default' : 'destructive'}>
           {gateway.connectionState}
         </Badge>
+        <div className="ml-auto">
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-6 text-xs gap-1.5"
+            disabled={restarting}
+            onClick={handleRestart}
+          >
+            <RotateCcw className={`w-3 h-3 ${restarting ? 'animate-spin' : ''}`} />
+            {restarting ? 'Restarting...' : 'Restart Gateway'}
+          </Button>
+        </div>
       </div>
 
       <ScrollArea className="flex-1 min-h-0">

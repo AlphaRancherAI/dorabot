@@ -27,6 +27,7 @@ const electronAPI = {
   // Gateway bridge IPC (WebSocket runs in main process, renderer talks via IPC)
   gatewaySend: (data: string) => ipcRenderer.send('gateway:send', data),
   gatewayState: (): Promise<{ state: string; reconnectCount: number; connectId?: string }> => ipcRenderer.invoke('gateway:state'),
+  gatewayRestart: (): Promise<{ ok: boolean; error?: string }> => ipcRenderer.invoke('gateway:restart'),
   onGatewayMessage: (cb: (data: string) => void) => {
     const handler = (_e: any, data: string) => cb(data);
     ipcRenderer.on('gateway:message', handler);

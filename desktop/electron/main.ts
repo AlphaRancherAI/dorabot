@@ -265,6 +265,15 @@ app.on('ready', async () => {
     return gatewayBridge?.getState() ?? { state: 'disconnected', reconnectCount: 0 };
   });
 
+  // IPC: renderer requests gateway restart
+  ipcMain.handle('gateway:restart', async () => {
+    if (!gatewayManager) return { ok: false, error: 'no gateway manager' };
+    gatewayManager.stop();
+    await new Promise(r => setTimeout(r, 1500));
+    await gatewayManager.start();
+    return { ok: true };
+  });
+
   // Start gateway server before creating UI
   gatewayManager = new GatewayManager({
     onReady: () => {
