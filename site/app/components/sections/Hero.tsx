@@ -83,7 +83,7 @@ export function Hero() {
           <div className="mb-6 flex justify-center">
             <img
               src="/dorabot.png"
-              alt="dorabot"
+              alt="Jarvis"
               width={67}
               height={91}
               decoding="async"

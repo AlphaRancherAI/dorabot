@@ -26,6 +26,7 @@ export function VirtualChatList<T>({
   const viewportRef = useRef<HTMLDivElement>(null);
   const heightsRef = useRef<Map<number, number>>(new Map());
   const nearBottomRef = useRef(true);
+  const initialScrollDoneRef = useRef(false);
   const measureRafRef = useRef<number | null>(null);
   const observerRef = useRef<ResizeObserver | null>(null);
   const observedRef = useRef<Map<number, HTMLDivElement>>(new Map());
@@ -137,10 +138,17 @@ export function VirtualChatList<T>({
 
   useEffect(() => {
     const viewport = viewportRef.current;
-    if (!viewport || !nearBottomRef.current) return;
-    viewport.scrollTo({ top: viewport.scrollHeight, behavior: scrollBehavior });
-    onScrollBehaviorConsumed?.();
-  }, [items, onScrollBehaviorConsumed, scrollBehavior]);
+    if (!viewport) return;
+    // Before the first scroll, always snap to bottom regardless of nearBottomRef
+    // (the viewport ResizeObserver sets nearBottomRef=false before we get a chance to scroll)
+    if (!initialScrollDoneRef.current || nearBottomRef.current) {
+      viewport.scrollTo({ top: viewport.scrollHeight, behavior: initialScrollDoneRef.current ? scrollBehavior : 'auto' });
+      onScrollBehaviorConsumed?.();
+      initialScrollDoneRef.current = true;
+    }
+  // layout.total re-triggers as item heights are measured after mount
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [items, layout.total, onScrollBehaviorConsumed, scrollBehavior]);
 
   const attachRow = useCallback((index: number, el: HTMLDivElement | null) => {
     const ro = observerRef.current;

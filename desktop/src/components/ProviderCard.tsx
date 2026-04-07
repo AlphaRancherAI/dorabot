@@ -138,7 +138,12 @@ export function ProviderCard({ gateway, disabled }: Props) {
                 variant="outline"
                 size="sm"
                 className="h-6 text-[10px] px-2"
-                onClick={() => setShowAuthSetup(!showAuthSetup)}
+                onClick={async () => {
+                  if (!showAuthSetup && authenticated) {
+                    await gateway.resetAuth(providerName);
+                  }
+                  setShowAuthSetup(!showAuthSetup);
+                }}
                 disabled={disabled}
               >
                 {showAuthSetup ? 'cancel' : authenticated ? 'change' : 'set up'}

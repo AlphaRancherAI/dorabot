@@ -1765,6 +1765,11 @@ export function useGateway() {
     return res;
   }, [rpc]);
 
+  const resetAuth = useCallback(async (provider: string) => {
+    await rpc('provider.auth.reset', { provider });
+    setProviderInfo(prev => prev ? { ...prev, auth: { authenticated: false } as ProviderAuthInfo } : null);
+  }, [rpc]);
+
   const startOAuth = useCallback(async (provider: string) => {
     return await rpc('provider.auth.oauth', { provider }) as { authUrl: string; loginId: string };
   }, [rpc]);
@@ -1941,6 +1946,7 @@ export function useGateway() {
     getProviderStatus,
     setProvider,
     authWithApiKey,
+    resetAuth,
     startOAuth,
     completeOAuth,
     checkProvider,

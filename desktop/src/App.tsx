@@ -127,13 +127,19 @@ export default function App() {
 
   type SessionGroup = { id: string; name: string; collapsed: boolean };
   const [sessionGroups, setSessionGroups] = useState<SessionGroup[]>(() => {
-    try { return JSON.parse(localStorage.getItem('dorabot:sessionGroups') || '[]'); } catch { return []; }
+    try {
+      const s = window.electronAPI?.readUiStateSync?.();
+      return (s?.['sessionGroups'] as SessionGroup[]) ?? [];
+    } catch { return []; }
   });
   const [sessionGroupMembership, setSessionGroupMembership] = useState<Record<string, string>>(() => {
-    try { return JSON.parse(localStorage.getItem('dorabot:sessionGroupMembership') || '{}'); } catch { return {}; }
+    try {
+      const s = window.electronAPI?.readUiStateSync?.();
+      return (s?.['sessionGroupMembership'] as Record<string, string>) ?? {};
+    } catch { return {}; }
   });
-  useEffect(() => { localStorage.setItem('dorabot:sessionGroups', JSON.stringify(sessionGroups)); }, [sessionGroups]);
-  useEffect(() => { localStorage.setItem('dorabot:sessionGroupMembership', JSON.stringify(sessionGroupMembership)); }, [sessionGroupMembership]);
+  useEffect(() => { window.electronAPI?.setUiState?.('sessionGroups', sessionGroups); }, [sessionGroups]);
+  useEffect(() => { window.electronAPI?.setUiState?.('sessionGroupMembership', sessionGroupMembership); }, [sessionGroupMembership]);
   const [renamingGroupId, setRenamingGroupId] = useState<string | null>(null);
   const [renameGroupValue, setRenameGroupValue] = useState('');
   const [draggingGroup, setDraggingGroup] = useState<SessionGroup | null>(null);

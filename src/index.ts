@@ -48,7 +48,7 @@ async function interactiveMode(config: Awaited<ReturnType<typeof loadConfig>>): 
   const sessionManager = new SessionManager(config);
   let currentSessionId: string | undefined;
 
-  console.log('dorabot interactive mode');
+  console.log('Jarvis interactive mode');
   console.log('Commands: /new, /resume <id>, /sessions, /skills, /agents, /schedule, /channels, /exit\n');
 
   const promptUser = (): void => {
@@ -221,7 +221,7 @@ async function main(): Promise<void> {
 
   if (values.help) {
     console.log(`
-dorabot - Claude Agent SDK powered assistant
+Jarvis - Claude Agent SDK powered assistant
 
 Usage:
   dorabot [options] [message]
@@ -262,7 +262,7 @@ Commands (interactive mode):
   }
 
   if (values.version) {
-    console.log('dorabot 1.0.0');
+    console.log('Jarvis 1.0.0');
     process.exit(0);
   }
 

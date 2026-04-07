@@ -38,6 +38,9 @@ const electronAPI = {
     ipcRenderer.on('gateway:state', handler);
     return () => { ipcRenderer.removeListener('gateway:state', handler); };
   },
+  // File-based UI state (bypasses Chromium LevelDB, survives locked userData)
+  readUiStateSync: (): Record<string, unknown> => ipcRenderer.sendSync('ui-state:read-sync'),
+  setUiState: (key: string, value: unknown) => ipcRenderer.send('ui-state:set', key, value),
 };
 
 contextBridge.exposeInMainWorld('electronAPI', electronAPI);

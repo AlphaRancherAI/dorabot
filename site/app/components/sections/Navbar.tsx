@@ -49,14 +49,14 @@ export function Navbar() {
           <a href="/" className="flex items-center gap-1.5">
             <img
               src="/dorabot.png"
-              alt="dorabot"
+              alt="Jarvis"
               width={67}
               height={91}
               decoding="async"
               className="h-9 w-auto dorabot-alive"
               style={{ imageRendering: "pixelated" }}
             />
-            <span className="text-sm font-medium text-text-secondary">dorabot</span>
+            <span className="text-sm font-medium text-text-secondary">Jarvis</span>
           </a>
           <nav className="hidden sm:flex items-center gap-6">
             <a href="#features" className="text-sm text-text-muted hover:text-text transition-colors">Features</a>

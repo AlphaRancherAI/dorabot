@@ -1,5 +1,5 @@
 appId: com.dorabot.desktop
-productName: dorabot
+productName: Jarvis
 copyright: Copyright 2026 Ishan Nagpal
 
 publish:
@@ -47,9 +47,9 @@ mac:
   gatekeeperAssess: false
   notarize: true
   extendInfo:
-    NSDesktopFolderUsageDescription: "dorabot needs access to your Desktop to read and manage files."
-    NSDocumentsFolderUsageDescription: "dorabot needs access to Documents to read and manage files."
-    NSDownloadsFolderUsageDescription: "dorabot needs access to Downloads to read and manage files."
+    NSDesktopFolderUsageDescription: "Jarvis needs access to your Desktop to read and manage files."
+    NSDocumentsFolderUsageDescription: "Jarvis needs access to Documents to read and manage files."
+    NSDownloadsFolderUsageDescription: "Jarvis needs access to Downloads to read and manage files."
 
 dmg:
   title: "${productName}"

@@ -2,7 +2,7 @@ import { app, BrowserWindow, Tray, Menu, nativeImage, session, ipcMain, shell, N
 import { autoUpdater } from 'electron-updater';
 import { is } from '@electron-toolkit/utils';
 import * as path from 'path';
-import { existsSync, readFileSync } from 'fs';
+import { existsSync, readFileSync, writeFileSync } from 'fs';
 import { GatewayManager } from './gateway-manager';
 import { GatewayBridge } from './gateway-bridge';
 import { DORABOT_DIR, GATEWAY_LOG_PATH } from './dorabot-paths';
@@ -211,11 +211,11 @@ function createTray(): void {
   const icon = nativeImage.createFromPath(getIconPath()).resize({ width: 18, height: 18 });
 
   tray = new Tray(icon);
-  tray.setToolTip('dorabot');
+  tray.setToolTip('Jarvis');
   updateTrayTitle('idle');
 
   const contextMenu = Menu.buildFromTemplate([
-    { label: 'Open dorabot', click: showWindow },
+    { label: 'Open Jarvis', click: showWindow },
     { type: 'separator' },
     { label: 'Status: idle', enabled: false, id: 'status' },
     { type: 'separator' },
@@ -308,13 +308,28 @@ app.on('ready', async () => {
   createWindow();
   setupAutoUpdater();
 
+  // Persistent UI state stored as a JSON file in DORABOT_DIR (bypasses Chromium LevelDB)
+  const uiStatePath = path.join(DORABOT_DIR, 'ui-state.json');
+  ipcMain.on('ui-state:read-sync', (event) => {
+    try {
+      event.returnValue = existsSync(uiStatePath) ? JSON.parse(readFileSync(uiStatePath, 'utf-8')) : {};
+    } catch { event.returnValue = {}; }
+  });
+  ipcMain.on('ui-state:set', (_event, key: string, value: unknown) => {
+    try {
+      const state = existsSync(uiStatePath) ? JSON.parse(readFileSync(uiStatePath, 'utf-8')) : {};
+      state[key] = value;
+      writeFileSync(uiStatePath, JSON.stringify(state));
+    } catch {}
+  });
+
   ipcMain.on('dock-bounce', (_event, type: 'critical' | 'informational') => {
     if (app.dock) {
       app.dock.bounce(type);
     }
   });
   ipcMain.on('notify', (_event, payload: { title?: string; body?: string } | undefined) => {
-    const title = payload?.title?.trim() || 'dorabot';
+    const title = payload?.title?.trim() || 'Jarvis';
     const body = payload?.body?.trim() || '';
     if (!body) return;
     showAppNotification(title, body);

@@ -266,7 +266,7 @@ export function generateIcsString(items: CalendarItem[]): string {
     'PRODID:-//dorabot//scheduler//EN',
     'CALSCALE:GREGORIAN',
     'METHOD:PUBLISH',
-    'X-WR-CALNAME:Dorabot Schedule',
+    'X-WR-CALNAME:Jarvis Schedule',
   ];
 
   for (const item of items) {

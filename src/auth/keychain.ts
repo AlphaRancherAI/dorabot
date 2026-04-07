@@ -50,7 +50,7 @@ export function keychainStore(account: string, secret: string): boolean {
     if (process.platform === 'linux') {
       execFileSync('secret-tool', [
         'store',
-        '--label', `DoraBot ${account}`,
+        '--label', `Jarvis ${account}`,
         'service', SERVICE_NAME,
         'account', account,
       ], {

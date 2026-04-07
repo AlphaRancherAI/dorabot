@@ -272,7 +272,7 @@ export function Automations({ gateway }: AutomationsProps) {
                       <Badge className="text-[9px] h-4 animate-pulse bg-primary/20 text-primary border-primary/30">running</Badge>
                     )}
                   </div>
-                  <span className="text-[11px] text-muted-foreground">dorabot thinks on its own periodically</span>
+                  <span className="text-[11px] text-muted-foreground">Jarvis thinks on its own periodically</span>
                 </div>
                 <Switch
                   checked={pulse.enabled}
@@ -314,7 +314,7 @@ export function Automations({ gateway }: AutomationsProps) {
                   {!hasConnectedChannel && (
                     <div className="flex items-center gap-2 p-2 rounded bg-warning/10 border border-warning/20">
                       <Radio className="w-3.5 h-3.5 text-warning shrink-0" />
-                      <span className="text-[11px] text-warning">connect WhatsApp or Telegram so dorabot can reach you during pulses</span>
+                      <span className="text-[11px] text-warning">connect WhatsApp or Telegram so Jarvis can reach you during pulses</span>
                     </div>
                   )}
                 </>

@@ -239,8 +239,15 @@ export function OnboardingOverlay({ gateway, onComplete }: Props) {
           initial={{ opacity: 0, scale: 0.98, y: 8 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           transition={{ duration: 0.22, ease: 'easeOut' }}
-          className="w-full max-w-lg rounded-2xl border border-border bg-card/90 shadow-2xl backdrop-blur-xl"
+          className="relative w-full max-w-lg rounded-2xl border border-border bg-card/90 shadow-2xl backdrop-blur-xl"
         >
+          <button
+            onClick={() => onComplete(false, { name: profileName, timezone: profileTimezone })}
+            className="absolute top-3 right-3 z-10 text-[10px] text-muted-foreground/60 hover:text-foreground transition-colors px-2 py-1 rounded"
+            title="Skip entire onboarding"
+          >
+            skip setup
+          </button>
           <div className="px-6 py-6 sm:px-8 sm:py-7">
             {step !== 'welcome' && step !== 'detecting' && (
               <motion.div
@@ -366,7 +373,7 @@ function WelcomeStep({ onContinue }: { onContinue: () => void }) {
         transition={{ duration: 0.5, ease: 'easeOut' }}
       >
         <div className="absolute inset-0 rounded-full bg-primary/20 blur-2xl animate-pulse" style={{ width: 120, height: 120, margin: '-10px' }} />
-        <img src={dorabotComputerImg} alt="dorabot" className="relative w-24 h-24 dorabot-alive" />
+        <img src={dorabotComputerImg} alt="Jarvis" className="relative w-24 h-24 dorabot-alive" />
       </motion.div>
 
       <motion.div
@@ -375,7 +382,7 @@ function WelcomeStep({ onContinue }: { onContinue: () => void }) {
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.3 }}
       >
-        <h1 className="text-xl font-bold text-foreground">Welcome to dorabot</h1>
+        <h1 className="text-xl font-bold text-foreground">Welcome to Jarvis</h1>
         <p className="text-sm text-muted-foreground">
           Your AI workspace that can{' '}
           <FlipWords
@@ -412,7 +419,7 @@ function DetectingStep() {
     <div className="flex flex-col items-center gap-4 py-8">
       <div className="relative w-20 h-20 mx-auto">
         <div className="absolute inset-0 rounded-full bg-success/30 blur-xl animate-pulse" />
-        <img src={dorabotComputerImg} alt="dorabot" className="relative w-20 h-20 dorabot-alive" />
+        <img src={dorabotComputerImg} alt="Jarvis" className="relative w-20 h-20 dorabot-alive" />
       </div>
       <Loader2 className="w-5 h-5 text-primary animate-spin" />
       <TextGenerateEffect
@@ -458,11 +465,11 @@ function ChooseStep({
       <div className="text-center space-y-3">
         <div className="relative w-20 h-20 mx-auto">
           <div className="absolute inset-0 rounded-full bg-success/30 blur-xl animate-pulse" />
-          <img src={dorabotComputerImg} alt="dorabot" className="relative w-20 h-20 dorabot-alive" />
+          <img src={dorabotComputerImg} alt="Jarvis" className="relative w-20 h-20 dorabot-alive" />
         </div>
         <div>
           <h1 className="text-base font-semibold text-foreground">Connect your AI</h1>
-          <p className="text-[11px] text-muted-foreground mt-1">Dorabot uses your existing Claude or OpenAI account.</p>
+          <p className="text-[11px] text-muted-foreground mt-1">Jarvis uses your existing Claude or OpenAI account.</p>
         </div>
       </div>
 
@@ -640,7 +647,7 @@ function ProfileStep({
           <User className="w-6 h-6 text-primary" />
         </motion.div>
         <h2 className="text-base font-semibold text-foreground">a little about you</h2>
-        <p className="text-[11px] text-muted-foreground">helps dorabot personalize your experience</p>
+        <p className="text-[11px] text-muted-foreground">helps Jarvis personalize your experience</p>
       </div>
 
       <div className="space-y-3">
@@ -728,7 +735,7 @@ function ChannelsStep({
           <MessageSquare className="w-6 h-6 text-primary" />
         </motion.div>
         <h2 className="text-base font-semibold text-foreground">connect your channels</h2>
-        <p className="text-[11px] text-muted-foreground">chat with dorabot from your favorite apps (optional)</p>
+        <p className="text-[11px] text-muted-foreground">chat with Jarvis from your favorite apps (optional)</p>
       </div>
 
       {activeChannel === 'none' && (
@@ -1063,14 +1070,14 @@ const MAC_PERMISSIONS = [
   {
     id: 'screen-recording',
     label: 'Screen Recording',
-    description: 'lets dorabot take screenshots of your screen',
+    description: 'lets Jarvis take screenshots of your screen',
     icon: Monitor,
     settingsUrl: 'x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture',
   },
   {
     id: 'accessibility',
     label: 'Accessibility',
-    description: 'lets dorabot manage windows, control apps, and automate your Mac',
+    description: 'lets Jarvis manage windows, control apps, and automate your Mac',
     icon: Hand,
     settingsUrl: 'x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility',
   },
@@ -1094,7 +1101,7 @@ function PermissionsStep({ onContinue, onBack }: { onContinue: () => void; onBac
           <Monitor className="w-6 h-6 text-primary" />
         </motion.div>
         <h2 className="text-base font-semibold text-foreground">macOS permissions</h2>
-        <p className="text-[11px] text-muted-foreground">grant these so dorabot can use all its tools</p>
+        <p className="text-[11px] text-muted-foreground">grant these so Jarvis can use all its tools</p>
       </div>
 
       <div className="space-y-2">
@@ -1117,7 +1124,7 @@ function PermissionsStep({ onContinue, onBack }: { onContinue: () => void; onBac
       </div>
 
       <div className="text-[10px] text-muted-foreground bg-muted/50 rounded-lg px-3 py-2 text-center">
-        add <strong>dorabot</strong> (or your terminal) in each section of System Settings &gt; Privacy &amp; Security
+        add <strong>Jarvis</strong> (or your terminal) in each section of System Settings &gt; Privacy &amp; Security
       </div>
 
       <div className="space-y-2">
@@ -1183,7 +1190,7 @@ function TourStep({ onContinue, onBack }: { onContinue: () => void; onBack: () =
   return (
     <div className="space-y-5">
       <div className="text-center space-y-2">
-        <h2 className="text-base font-semibold text-foreground">what dorabot can do</h2>
+        <h2 className="text-base font-semibold text-foreground">what Jarvis can do</h2>
         <p className="text-[11px] text-muted-foreground">a quick look at the key features</p>
       </div>
 
@@ -1245,7 +1252,7 @@ function LaunchStep({
         transition={{ duration: 0.4, ease: 'easeOut' }}
       >
         <div className="absolute inset-0 rounded-full bg-success/30 blur-2xl animate-pulse" style={{ width: 100, height: 100, margin: '-10px' }} />
-        <img src={dorabotImg} alt="dorabot" className="relative w-20 h-20 dorabot-alive" />
+        <img src={dorabotImg} alt="Jarvis" className="relative w-20 h-20 dorabot-alive" />
       </motion.div>
 
       <motion.div
@@ -1271,7 +1278,7 @@ function LaunchStep({
           onClick={onLaunch}
         >
           <Sparkles className="w-4 h-4" />
-          personalize dorabot
+          personalize Jarvis
         </Button>
         <button
           onClick={onSkip}
