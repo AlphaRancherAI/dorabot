@@ -11,6 +11,8 @@ import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 import { EditorGroupPanel } from './components/EditorGroupPanel';
 import { TabDragOverlay } from './components/TabBar';
 import { FileExplorer } from './components/FileExplorer';
+import { SessionListItem } from './components/SessionListItem';
+import { SessionGroupHeader } from './components/SessionGroupHeader';
 import { Progress } from './components/Progress';
 import { OnboardingOverlay } from './components/Onboarding';
 import { DndContext, DragOverlay, PointerSensor, useSensor, useSensors, type DragEndEvent, type DragStartEvent } from '@dnd-kit/core';
@@ -24,10 +26,29 @@ import {
   MessageSquare, Radio, Zap, Brain, Settings2,
   Sparkles, LayoutGrid, Loader2, Star,
   Sun, Moon, Clock, FileSearch, Plug, Folder, FolderOpen, X,
-  ShieldAlert, CalendarCheck, Target, FlaskConical, KeyRound
+  ShieldAlert, CalendarCheck, Target, FlaskConical, KeyRound, Plus
 } from 'lucide-react';
 
+import { useDroppable } from '@dnd-kit/core';
+
 type SessionFilter = 'all' | 'desktop' | 'telegram' | 'whatsapp';
+
+function UngroupedDropZone({ hasGroups, children }: { hasGroups: boolean; children: React.ReactNode }) {
+  const { setNodeRef, isOver } = useDroppable({ id: 'ungrouped-drop' });
+  return (
+    <div
+      ref={setNodeRef}
+      className={hasGroups && isOver ? 'rounded-md ring-1 ring-primary/40 bg-secondary/20' : undefined}
+    >
+      {hasGroups && (
+        <div className="flex items-center px-1.5 py-1 mt-1">
+          <span className="text-[9px] uppercase tracking-wider text-muted-foreground/50">ungrouped</span>
+        </div>
+      )}
+      {children}
+    </div>
+  );
+}
 type UpdateState = {
   status: 'idle' | 'checking' | 'available' | 'downloading' | 'downloaded' | 'error';
   version?: string;
@@ -91,6 +112,79 @@ export default function App() {
   const [sessionCtxMenu, setSessionCtxMenu] = useState<{ id: string; sessionKey: string; x: number; y: number } | null>(null);
   const [sessionSearch, setSessionSearch] = useState('');
   const [sessionSearchResults, setSessionSearchResults] = useState<string[] | null>(null);
+  const [sessionOrder, setSessionOrder] = useState<string[]>(() => {
+    try {
+      const raw = localStorage.getItem('dorabot:sessionOrder');
+      const parsed = raw ? JSON.parse(raw) : [];
+      return Array.isArray(parsed) ? parsed.filter((x): x is string => typeof x === 'string') : [];
+    } catch {
+      return [];
+    }
+  });
+  useEffect(() => {
+    localStorage.setItem('dorabot:sessionOrder', JSON.stringify(sessionOrder));
+  }, [sessionOrder]);
+
+  type SessionGroup = { id: string; name: string; collapsed: boolean };
+  const [sessionGroups, setSessionGroups] = useState<SessionGroup[]>(() => {
+    try { return JSON.parse(localStorage.getItem('dorabot:sessionGroups') || '[]'); } catch { return []; }
+  });
+  const [sessionGroupMembership, setSessionGroupMembership] = useState<Record<string, string>>(() => {
+    try { return JSON.parse(localStorage.getItem('dorabot:sessionGroupMembership') || '{}'); } catch { return {}; }
+  });
+  useEffect(() => { localStorage.setItem('dorabot:sessionGroups', JSON.stringify(sessionGroups)); }, [sessionGroups]);
+  useEffect(() => { localStorage.setItem('dorabot:sessionGroupMembership', JSON.stringify(sessionGroupMembership)); }, [sessionGroupMembership]);
+  const [renamingGroupId, setRenamingGroupId] = useState<string | null>(null);
+  const [renameGroupValue, setRenameGroupValue] = useState('');
+  const [draggingGroup, setDraggingGroup] = useState<SessionGroup | null>(null);
+  const [groupCtxMenu, setGroupCtxMenu] = useState<{ id: string; x: number; y: number } | null>(null);
+
+  const createGroup = useCallback(() => {
+    const id = `grp-${Date.now()}`;
+    setSessionGroups(prev => [...prev, { id, name: 'New Group', collapsed: false }]);
+    setRenamingGroupId(id);
+    setRenameGroupValue('New Group');
+  }, []);
+
+  const deleteGroup = useCallback((groupId: string) => {
+    setSessionGroups(prev => prev.filter(g => g.id !== groupId));
+    setSessionGroupMembership(prev => {
+      const next = { ...prev };
+      for (const sid of Object.keys(next)) { if (next[sid] === groupId) delete next[sid]; }
+      return next;
+    });
+  }, []);
+
+  const renameGroup = useCallback((groupId: string, name: string) => {
+    const trimmed = name.trim();
+    if (!trimmed) { deleteGroup(groupId); return; }
+    setSessionGroups(prev => prev.map(g => g.id === groupId ? { ...g, name: trimmed } : g));
+  }, [deleteGroup]);
+
+  const assignToGroup = useCallback((sessionId: string, groupId: string | null) => {
+    setSessionGroupMembership(prev => {
+      const next = { ...prev };
+      if (groupId == null) delete next[sessionId];
+      else next[sessionId] = groupId;
+      return next;
+    });
+  }, []);
+
+  const reorderGroups = useCallback((srcId: string, tgtId: string) => {
+    setSessionGroups(prev => {
+      const src = prev.find(g => g.id === srcId);
+      if (!src) return prev;
+      const next = prev.filter(g => g.id !== srcId);
+      const tgtIdx = next.findIndex(g => g.id === tgtId);
+      if (tgtIdx >= 0) next.splice(tgtIdx, 0, src);
+      return next;
+    });
+  }, []);
+
+  const toggleGroupCollapsed = useCallback((groupId: string) => {
+    setSessionGroups(prev => prev.map(g => g.id === groupId ? { ...g, collapsed: !g.collapsed } : g));
+  }, []);
+
   const [renamingSessionId, setRenamingSessionId] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState('');
   const sessionSearchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -106,17 +200,18 @@ export default function App() {
   const tabState = useTabs(gw, layout);
   const [starCount, setStarCount] = useState<number | null>(null);
   const [draggingTab, setDraggingTab] = useState<Tab | null>(null);
+  const [draggingSession, setDraggingSession] = useState<{ id: string; label: string } | null>(null);
   const { theme, toggle: toggleTheme } = useTheme();
   const [updateState, setUpdateState] = useState<UpdateState>({ status: 'idle' });
   const notify = useCallback((body: string) => {
     const api = (window as any).electronAPI;
     if (api?.notify) {
-      api.notify('dorabot', body);
+      api.notify('Jarvis', body);
       return;
     }
     try {
       const icon = new URL(dorabotImg, window.location.href).toString();
-      new Notification('dorabot', { body, icon });
+      new Notification('Jarvis', { body, icon });
     } catch {}
   }, []);
 
@@ -222,7 +317,7 @@ export default function App() {
 
   // Check provider auth on connect - show onboarding if not completed yet
   useEffect(() => {
-    if (gw.connectionState === 'connected' && gw.providerInfo && !onboardingCheckedRef.current) {
+    if (gw.connectionState === 'connected' && gw.providerInfo && gw.configData && !onboardingCheckedRef.current) {
       onboardingCheckedRef.current = true;
       const now = Date.now();
       const unauthSnoozeUntil = Number(localStorage.getItem(ONBOARDING_UNAUTH_SNOOZE_UNTIL_KEY) || '0');
@@ -231,17 +326,26 @@ export default function App() {
         localStorage.removeItem(ONBOARDING_UNAUTH_SNOOZE_UNTIL_KEY);
       }
 
+      // Auto-detect existing setup: authenticated + userName set = skip onboarding on first launch.
+      const userName = typeof gw.configData.userName === 'string' ? gw.configData.userName.trim() : '';
+      const isAuthed = gw.providerInfo.auth.authenticated;
+      if (!onboardingCompletedRef.current && isAuthed && userName) {
+        localStorage.setItem(ONBOARDING_COMPLETED_KEY, 'true');
+        onboardingCompletedRef.current = true;
+        return;
+      }
+
       // Show onboarding if never completed, or if auth is missing and not recently snoozed.
       if (!onboardingCompletedRef.current) {
         setShowOnboarding(true);
-      } else if (!gw.providerInfo.auth.authenticated && !unauthSnoozed) {
+      } else if (!isAuthed && !unauthSnoozed) {
         setShowOnboarding(true);
       }
     }
     if (gw.connectionState === 'disconnected') {
       onboardingCheckedRef.current = false;
     }
-  }, [gw.connectionState, gw.providerInfo]);
+  }, [gw.connectionState, gw.providerInfo, gw.configData]);
 
 
   // subscribe to notifiable gateway events for toasts + OS notifications
@@ -367,6 +471,21 @@ export default function App() {
   }, [gw.onNotifiableEventRef, notify, tabState]);
 
   const ARCHIVE_CUTOFF_MS = 14 * 24 * 60 * 60 * 1000; // 2 weeks
+  const orderIndex = useMemo(() => {
+    const map = new Map<string, number>();
+    sessionOrder.forEach((id, i) => map.set(id, i));
+    return map;
+  }, [sessionOrder]);
+  const sortByCustomOrder = useCallback((arr: typeof gw.sessions) => {
+    return [...arr].sort((a, b) => {
+      const ai = orderIndex.get(a.id);
+      const bi = orderIndex.get(b.id);
+      if (ai !== undefined && bi !== undefined) return ai - bi;
+      if (ai !== undefined) return -1;
+      if (bi !== undefined) return 1;
+      return 0; // preserve server order (updated_at DESC)
+    });
+  }, [orderIndex]);
   const { recentSessions, archivedSessions } = useMemo(() => {
     const channelFiltered = sessionFilter === 'all'
       ? gw.sessions
@@ -382,8 +501,8 @@ export default function App() {
         recent.push(s);
       }
     }
-    return { recentSessions: recent, archivedSessions: archived };
-  }, [gw.sessions, sessionFilter]);
+    return { recentSessions: sortByCustomOrder(recent), archivedSessions: sortByCustomOrder(archived) };
+  }, [gw.sessions, sessionFilter, sortByCustomOrder]);
   const baseFilteredSessions = showArchived
     ? [...recentSessions, ...archivedSessions]
     : recentSessions;
@@ -395,6 +514,7 @@ export default function App() {
         return matchesMeta || matchesFts;
       })
     : baseFilteredSessions;
+  const ungroupedSessions = filteredSessions.filter(s => !sessionGroupMembership[s.id]);
 
   // Track which sessions are visible across all panes (for sidebar highlighting)
   const visibleSessionIds = useMemo(() => {
@@ -528,23 +648,83 @@ export default function App() {
 
   // --- Drag and drop ---
   const handleDragStart = useCallback((event: DragStartEvent) => {
+    const activeId = event.active.id as string;
     const tabId = event.active.data.current?.tabId as string | undefined;
     if (tabId) {
       const tab = tabState.tabs.find(t => t.id === tabId);
       if (tab) setDraggingTab(tab);
+      return;
     }
-  }, [tabState.tabs]);
+    if (activeId.startsWith('group:')) {
+      const groupId = event.active.data.current?.groupId as string | undefined;
+      if (groupId) {
+        const g = sessionGroups.find(g => g.id === groupId);
+        if (g) setDraggingGroup(g);
+      }
+      return;
+    }
+    const sessionId = event.active.data.current?.sessionId as string | undefined;
+    if (sessionId) {
+      const s = gw.sessions.find(s => s.id === sessionId);
+      if (s) setDraggingSession({ id: sessionId, label: s.label || s.senderName || s.preview || s.chatId || sessionId.slice(8, 16) });
+    }
+  }, [tabState.tabs, gw.sessions, sessionGroups]);
 
   const handleDragEnd = useCallback((event: DragEndEvent) => {
     setDraggingTab(null);
+    setDraggingSession(null);
+    setDraggingGroup(null);
     const { active, over } = event;
     if (!over) return;
 
     const tabId = active.data.current?.tabId as string;
     const sourceGroupId = active.data.current?.sourceGroupId as GroupId | undefined;
-    if (!tabId) return;
 
     const overId = over.id as string;
+    const activeId = active.id as string;
+
+    // Group dropped on group reorder zone → reorder groups
+    if (activeId.startsWith('group:') && overId.startsWith('group-reorder:')) {
+      const srcGroupId = active.data.current?.groupId as string;
+      const tgtGroupId = over.data.current?.targetGroupId as string;
+      if (srcGroupId && tgtGroupId && srcGroupId !== tgtGroupId) reorderGroups(srcGroupId, tgtGroupId);
+      return;
+    }
+
+    // Session dropped on group header → assign session to group
+    if (activeId.startsWith('session:') && overId.startsWith('group-header:')) {
+      const sessionId = active.data.current?.sessionId as string;
+      const targetGroupId = over.data.current?.groupId as string;
+      if (sessionId && targetGroupId) assignToGroup(sessionId, targetGroupId);
+      return;
+    }
+
+    // Session dropped on ungrouped zone → remove from group
+    if (activeId.startsWith('session:') && overId === 'ungrouped-drop') {
+      const sessionId = active.data.current?.sessionId as string;
+      if (sessionId) assignToGroup(sessionId, null);
+      return;
+    }
+
+    // Dropped on a sidebar session — reorder sessions
+    if (activeId.startsWith('session:') && overId.startsWith('session-reorder:')) {
+      const srcSessionId = active.data.current?.sessionId as string;
+      const tgtSessionId = over.data.current?.targetSessionId as string;
+      if (srcSessionId && tgtSessionId && srcSessionId !== tgtSessionId) {
+        // Compute current visible order by reading from gateway sessions (server order)
+        // then apply custom order, so the new sessionOrder reflects the visible arrangement.
+        const visibleIds = sortByCustomOrder(gw.sessions).map(s => s.id);
+        const next = visibleIds.filter(id => id !== srcSessionId);
+        const tgtIdx = next.indexOf(tgtSessionId);
+        if (tgtIdx >= 0) {
+          next.splice(tgtIdx, 0, srcSessionId);
+          setSessionOrder(next);
+        }
+      }
+      return;
+    }
+
+    if (!tabId) return;
 
     // Helper: sync gateway after moving a tab
     const syncAfterMove = (tid: string) => {
@@ -623,7 +803,7 @@ export default function App() {
       }
       return;
     }
-  }, [layout, tabState]);
+  }, [layout, tabState, gw, sortByCustomOrder, reorderGroups, assignToGroup]);
 
   const channelIcon = (ch?: string) => {
     if (ch === 'whatsapp') return <img src={whatsappImg} className="w-3 h-3" alt="W" />;
@@ -825,8 +1005,8 @@ export default function App() {
 
       {/* titlebar — pure drag chrome */}
       <div className="h-11 bg-card glass border-b border-border flex items-center pl-[78px] pr-4 shrink-0" style={{ WebkitAppRegion: 'drag' } as any}>
-        <img src={dorabotImg} alt="dorabot" className="h-8 mr-1 dorabot-alive" style={{ imageRendering: 'pixelated' }} />
-        <span className="text-base text-muted-foreground font-medium">dorabot</span>
+        <img src={dorabotImg} alt="Jarvis" className="h-8 mr-1 dorabot-alive" style={{ imageRendering: 'pixelated' }} />
+        <span className="text-base text-muted-foreground font-medium">Jarvis</span>
         <a
           href="https://github.com/suitedaces/dorabot"
           target="_blank"
@@ -908,6 +1088,7 @@ export default function App() {
       )}
 
       {/* main layout */}
+      <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
       <ResizablePanelGroup orientation="horizontal" className="flex-1 min-h-0">
         {/* sidebar */}
         <ResizablePanel defaultSize="15%" minSize="10%" maxSize="25%" className="bg-card glass overflow-hidden">
@@ -962,113 +1143,140 @@ export default function App() {
             </div>
 
             {/* sessions */}
-            {gw.sessions.length > 0 && (
-              <>
-                <Separator />
-                <div className="shrink-0 px-2 pt-1">
-                  <div className="flex items-center px-2.5 py-1">
-                    <span className="text-[10px] uppercase tracking-wider text-muted-foreground">sessions</span>
-                    <select
-                      value={sessionFilter}
-                      onChange={e => setSessionFilter(e.target.value as SessionFilter)}
-                      className="ml-auto text-[9px] bg-secondary text-muted-foreground border border-border rounded px-1 py-0.5"
-                    >
-                      <option value="all">all</option>
-                      <option value="desktop">desktop</option>
-                      <option value="telegram">telegram</option>
-                      <option value="whatsapp">whatsapp</option>
-                    </select>
-                  </div>
-                  <div className="px-1 pb-1">
-                    <input
-                      type="text"
-                      value={sessionSearch}
-                      onChange={e => setSessionSearch(e.target.value)}
-                      placeholder="search sessions..."
-                      className="w-full text-[10px] bg-secondary/50 text-foreground placeholder:text-muted-foreground/50 border border-border/50 rounded px-2 py-0.5 outline-none focus:border-border"
-                    />
-                  </div>
-                </div>
-                <ScrollArea className="flex-1 min-h-0 px-2 pb-2">
-                  {filteredSessions.slice(0, 30).map(s => {
-                    const isActive = tabState.activeTab && isChatTab(tabState.activeTab) && tabState.activeTab.sessionId === s.id;
-                    const isVisible = !isActive && visibleSessionIds.has(s.id);
-                    const unread = unreadBySessionId[s.id] || 0;
-                    const derivedSessionKey = s.sessionKey || `${s.channel || 'desktop'}:${s.chatType || 'dm'}:${s.chatId}`;
-                    const displayLabel = s.label || s.senderName || s.preview || s.chatId || s.id.slice(8, 16);
-                    const isRenaming = renamingSessionId === s.id;
-                    return (
-                      <div
-                        key={s.id}
-                        className={`flex items-center gap-1.5 w-full px-2.5 py-1 rounded-md text-[10px] transition-colors ${
-                          isActive
-                            ? 'bg-secondary text-foreground'
-                            : isVisible
-                            ? 'bg-secondary/60 text-foreground/80'
-                            : 'text-muted-foreground hover:bg-secondary/50'
-                        }`}
-                        onContextMenu={(e) => { e.preventDefault(); setSessionCtxMenu({ id: s.id, sessionKey: derivedSessionKey, x: e.clientX, y: e.clientY }); }}
-                      >
-                        <span className="w-3 h-3 shrink-0 flex items-center justify-center">{channelIcon(s.channel)}</span>
-                        {isRenaming ? (
-                          <input
-                            autoFocus
-                            className="flex-1 min-w-0 bg-transparent border-b border-border text-[10px] outline-none py-0"
-                            value={renameValue}
-                            onChange={e => setRenameValue(e.target.value)}
-                            onKeyDown={async (e) => {
-                              if (e.key === 'Enter') {
-                                renameSavedRef.current = true;
-                                await gw.renameSession(s.id, renameValue).catch(() => {});
-                                setRenamingSessionId(null);
-                              } else if (e.key === 'Escape') {
-                                renameSavedRef.current = true;
-                                setRenamingSessionId(null);
-                              }
-                            }}
-                            onBlur={async () => {
-                              if (renameSavedRef.current) { renameSavedRef.current = false; return; }
-                              await gw.renameSession(s.id, renameValue).catch(() => {});
-                              setRenamingSessionId(null);
-                            }}
-                            onClick={e => e.stopPropagation()}
-                          />
-                        ) : (
-                          <button
-                            className="truncate flex-1 text-left bg-transparent"
-                            onClick={() => handleViewSession(s.id, s.channel, s.chatId, s.chatType)}
-                            title={`${s.channel || 'desktop'} | ${s.messageCount} msgs | ${new Date(s.updatedAt).toLocaleString()}`}
-                            onDoubleClick={() => { renameSavedRef.current = false; setRenameValue(s.label || ''); setRenamingSessionId(s.id); }}
-                          >
-                            {s.label ? <span className="font-medium">{s.label}</span> : displayLabel}
-                          </button>
-                        )}
-                        {!isRenaming && unread > 0 && !s.activeRun && (
-                          <span className="text-[9px] bg-primary text-primary-foreground rounded-full px-1.5 min-w-[16px] text-center">
-                            {unread > 99 ? '99+' : unread}
-                          </span>
-                        )}
-                        {!isRenaming && (s.activeRun ? (
-                          <Loader2 className="w-3 h-3 shrink-0 animate-spin text-primary" />
-                        ) : (
-                          <span className="text-[9px] text-muted-foreground shrink-0">
-                            {new Date(s.updatedAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
-                          </span>
-                        ))}
-                      </div>
-                    );
-                  })}
-                </ScrollArea>
-                {archivedSessions.length > 0 && (
-                  <button
-                    className="shrink-0 w-full text-center text-[9px] text-muted-foreground/60 hover:text-muted-foreground py-1 transition-colors"
-                    onClick={() => setShowArchived(v => !v)}
+            {gw.sessions.length > 0 && (() => {
+              const renderSessionItem = (s: typeof gw.sessions[0]) => {
+                const isActive = tabState.activeTab && isChatTab(tabState.activeTab) && tabState.activeTab.sessionId === s.id;
+                const isVisible = !isActive && visibleSessionIds.has(s.id);
+                const unread = unreadBySessionId[s.id] || 0;
+                const derivedSessionKey = s.sessionKey || `${s.channel || 'desktop'}:${s.chatType || 'dm'}:${s.chatId}`;
+                const displayLabel = s.label || s.senderName || s.preview || s.chatId || s.id.slice(8, 16);
+                const isRenaming = renamingSessionId === s.id;
+                return (
+                  <SessionListItem
+                    key={s.id}
+                    sessionId={s.id}
+                    isActive={!!isActive}
+                    isVisible={isVisible}
+                    unread={unread}
+                    activeRun={s.activeRun}
+                    updatedAt={s.updatedAt}
+                    label={s.label}
+                    displayLabel={displayLabel}
+                    isRenaming={isRenaming}
+                    channelIcon={channelIcon(s.channel)}
+                    onContextMenu={(e) => { e.preventDefault(); setSessionCtxMenu({ id: s.id, sessionKey: derivedSessionKey, x: e.clientX, y: e.clientY }); }}
                   >
-                    {showArchived ? `hide ${archivedSessions.length} archived` : `show ${archivedSessions.length} archived`}
-                  </button>
-                )}
-              </>
-            )}
+                    {isRenaming ? (
+                      <input
+                        autoFocus
+                        className="flex-1 min-w-0 bg-transparent border-b border-border text-[10px] outline-none py-0"
+                        value={renameValue}
+                        onChange={e => setRenameValue(e.target.value)}
+                        onKeyDown={async (e) => {
+                          if (e.key === 'Enter') {
+                            renameSavedRef.current = true;
+                            await gw.renameSession(s.id, renameValue).catch(() => {});
+                            setRenamingSessionId(null);
+                          } else if (e.key === 'Escape') {
+                            renameSavedRef.current = true;
+                            setRenamingSessionId(null);
+                          }
+                        }}
+                        onBlur={async () => {
+                          if (renameSavedRef.current) { renameSavedRef.current = false; return; }
+                          await gw.renameSession(s.id, renameValue).catch(() => {});
+                          setRenamingSessionId(null);
+                        }}
+                        onClick={e => e.stopPropagation()}
+                      />
+                    ) : (
+                      <button
+                        className="truncate flex-1 text-left bg-transparent"
+                        onClick={() => handleViewSession(s.id, s.channel, s.chatId, s.chatType)}
+                        title={`${s.channel || 'desktop'} | ${s.messageCount} msgs | ${new Date(s.updatedAt).toLocaleString()}`}
+                        onDoubleClick={() => { renameSavedRef.current = false; setRenameValue(s.label || ''); setRenamingSessionId(s.id); }}
+                      >
+                        {s.label ? <span className="font-medium">{s.label}</span> : displayLabel}
+                      </button>
+                    )}
+                  </SessionListItem>
+                );
+              };
+              return (
+                <>
+                  <Separator />
+                  <div className="shrink-0 px-2 pt-1">
+                    <div className="flex items-center px-2.5 py-1 gap-1">
+                      <span className="text-[10px] uppercase tracking-wider text-muted-foreground">sessions</span>
+                      <button
+                        onClick={createGroup}
+                        className="text-muted-foreground hover:text-foreground transition-colors"
+                        title="New group"
+                      >
+                        <Plus className="w-3 h-3" />
+                      </button>
+                      <select
+                        value={sessionFilter}
+                        onChange={e => setSessionFilter(e.target.value as SessionFilter)}
+                        className="ml-auto text-[9px] bg-secondary text-muted-foreground border border-border rounded px-1 py-0.5"
+                      >
+                        <option value="all">all</option>
+                        <option value="desktop">desktop</option>
+                        <option value="telegram">telegram</option>
+                        <option value="whatsapp">whatsapp</option>
+                      </select>
+                    </div>
+                    <div className="px-1 pb-1">
+                      <input
+                        type="text"
+                        value={sessionSearch}
+                        onChange={e => setSessionSearch(e.target.value)}
+                        placeholder="search sessions..."
+                        className="w-full text-[10px] bg-secondary/50 text-foreground placeholder:text-muted-foreground/50 border border-border/50 rounded px-2 py-0.5 outline-none focus:border-border"
+                      />
+                    </div>
+                  </div>
+                  <ScrollArea className="flex-1 min-h-0 px-2 pb-2">
+                    {sessionGroups.map(group => {
+                      const memberSessions = filteredSessions.filter(s => sessionGroupMembership[s.id] === group.id);
+                      return (
+                        <div key={group.id}>
+                          <SessionGroupHeader
+                            groupId={group.id}
+                            name={group.name}
+                            isCollapsed={group.collapsed}
+                            sessionCount={memberSessions.length}
+                            isRenaming={renamingGroupId === group.id}
+                            renameValue={renameGroupValue}
+                            onToggle={() => toggleGroupCollapsed(group.id)}
+                            onRenameChange={setRenameGroupValue}
+                            onRenameSubmit={() => { renameGroup(group.id, renameGroupValue); setRenamingGroupId(null); }}
+                            onRenameCancel={() => setRenamingGroupId(null)}
+                            onContextMenu={(e) => { e.preventDefault(); setGroupCtxMenu({ id: group.id, x: e.clientX, y: e.clientY }); }}
+                          />
+                          {!group.collapsed && (
+                            <div className="pl-3">
+                              {memberSessions.map(s => renderSessionItem(s))}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                    <UngroupedDropZone hasGroups={sessionGroups.length > 0}>
+                      {ungroupedSessions.slice(0, 30).map(s => renderSessionItem(s))}
+                    </UngroupedDropZone>
+                  </ScrollArea>
+                  {archivedSessions.length > 0 && (
+                    <button
+                      className="shrink-0 w-full text-center text-[9px] text-muted-foreground/60 hover:text-muted-foreground py-1 transition-colors"
+                      onClick={() => setShowArchived(v => !v)}
+                    >
+                      {showArchived ? `hide ${archivedSessions.length} archived` : `show ${archivedSessions.length} archived`}
+                    </button>
+                  )}
+                </>
+              );
+            })()}
 
             {/* pulse / scheduled runs indicator */}
             {gw.calendarRuns.length > 0 && (
@@ -1115,14 +1323,23 @@ export default function App() {
 
         {/* main content — layout-aware, wrapped in DndContext */}
         <ResizablePanel defaultSize={layout.isMultiPane ? "85%" : (showFiles ? "55%" : "85%")} minSize="30%" className="overflow-hidden min-w-0">
-          <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
-            <div className="relative h-full">
-              {renderLayout()}
-            </div>
-            <DragOverlay dropAnimation={null}>
-              {draggingTab && <TabDragOverlay tab={draggingTab} />}
-            </DragOverlay>
-          </DndContext>
+          <div className="relative h-full">
+            {renderLayout()}
+          </div>
+          <DragOverlay dropAnimation={null}>
+            {draggingTab && <TabDragOverlay tab={draggingTab} />}
+            {draggingSession && (
+              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[10px] bg-secondary text-foreground shadow-lg border border-border opacity-90 pointer-events-none max-w-[180px]">
+                <span className="truncate">{draggingSession.label}</span>
+              </div>
+            )}
+            {draggingGroup && (
+              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[10px] bg-secondary text-foreground shadow-lg border border-border opacity-90 pointer-events-none max-w-[180px] uppercase tracking-wider font-medium">
+                <Folder className="w-3 h-3 shrink-0" />
+                <span className="truncate">{draggingGroup.name}</span>
+              </div>
+            )}
+          </DragOverlay>
         </ResizablePanel>
 
         {/* file explorer — only in single-pane mode */}
@@ -1152,8 +1369,44 @@ export default function App() {
           </>
         )}
       </ResizablePanelGroup>
+      </DndContext>
 
       {/* Session right-click context menu — rendered via portal to avoid stacking context issues */}
+      {groupCtxMenu && createPortal(
+        <div
+          style={{ position: 'fixed', inset: 0, zIndex: 9999 }}
+          onClick={() => setGroupCtxMenu(null)}
+          onContextMenu={(e) => { e.preventDefault(); setGroupCtxMenu(null); }}
+        >
+          <div
+            style={{ position: 'absolute', left: groupCtxMenu.x, top: groupCtxMenu.y }}
+            className="bg-popover border border-border rounded-md shadow-lg py-1 min-w-[160px] font-mono"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              className="w-full text-left px-3 py-1.5 text-[11px] hover:bg-secondary transition-colors"
+              onClick={() => {
+                const g = sessionGroups.find(g => g.id === groupCtxMenu.id);
+                setRenameGroupValue(g?.name || '');
+                setRenamingGroupId(groupCtxMenu.id);
+                setGroupCtxMenu(null);
+              }}
+            >
+              Rename
+            </button>
+            <button
+              className="w-full text-left px-3 py-1.5 text-[11px] hover:bg-secondary transition-colors text-destructive"
+              onClick={() => {
+                deleteGroup(groupCtxMenu.id);
+                setGroupCtxMenu(null);
+              }}
+            >
+              Delete group
+            </button>
+          </div>
+        </div>,
+        document.body
+      )}
       {sessionCtxMenu && createPortal(
         <div
           style={{ position: 'fixed', inset: 0, zIndex: 9999 }}
@@ -1177,6 +1430,17 @@ export default function App() {
             >
               Rename
             </button>
+            {sessionGroupMembership[sessionCtxMenu.id] && (
+              <button
+                className="w-full text-left px-3 py-1.5 text-[11px] hover:bg-secondary transition-colors"
+                onClick={() => {
+                  assignToGroup(sessionCtxMenu.id, null);
+                  setSessionCtxMenu(null);
+                }}
+              >
+                Remove from group
+              </button>
+            )}
             <button
               className="w-full text-left px-3 py-1.5 text-[11px] hover:bg-secondary transition-colors text-destructive"
               onClick={async () => {

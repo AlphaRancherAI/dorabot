@@ -607,6 +607,10 @@ export class CodexProvider implements Provider {
     }
   }
 
+  resetAuth(): void {
+    persistOpenAIKey('');
+  }
+
   async loginWithApiKey(apiKey: string): Promise<ProviderAuthStatus> {
     ensureCodexHome();
     // Persist to dorabot-managed file

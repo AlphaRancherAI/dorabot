@@ -2738,7 +2738,7 @@ export async function startGateway(opts: GatewayOptions): Promise<Gateway> {
         let errMsg = err instanceof Error ? err.message : String(err);
         // Improve error message for common issues
         if (errMsg.includes('spawn node ENOENT') || errMsg.includes('spawn node')) {
-          errMsg = 'Node.js not found. Install Node.js (https://nodejs.org) or Claude Code CLI (`npm install -g @anthropic-ai/claude-code`), then restart dorabot.';
+          errMsg = 'Node.js not found. Install Node.js (https://nodejs.org) or Claude Code CLI (`npm install -g @anthropic-ai/claude-code`), then restart Jarvis.';
         }
         finishPlanRun(sessionKey, 'error', errMsg);
         finishTaskRun(sessionKey, 'error', errMsg);
@@ -4483,6 +4483,18 @@ export async function startGateway(opts: GatewayOptions): Promise<Gateway> {
               pendingDesktopReauths.clear();
             }
             return { id, result: status };
+          } catch (err) {
+            return { id, error: err instanceof Error ? err.message : String(err) };
+          }
+        }
+
+        case 'provider.auth.reset': {
+          try {
+            const providerName = (params?.provider as string) || config.provider.name;
+            const p = await getProviderByName(providerName);
+            p.resetAuth();
+            broadcast({ event: 'provider.auth_complete', data: { provider: providerName, status: { authenticated: false } } });
+            return { id, result: { ok: true } };
           } catch (err) {
             return { id, error: err instanceof Error ? err.message : String(err) };
           }

@@ -48,6 +48,8 @@ export class OllamaProvider implements Provider {
     return { authenticated: ready, error: ready ? undefined : reason, tokenHealth: 'valid' };
   }
 
+  resetAuth(): void {}
+
   async loginWithApiKey(_apiKey: string): Promise<ProviderAuthStatus> {
     return this.getAuthStatus();
   }

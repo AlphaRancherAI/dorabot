@@ -104,6 +104,7 @@ export function EditorGroupPanel({
         };
         return (
           <ChatView
+            key={activeTab.sessionKey}
             gateway={gateway}
             chatItems={ss.chatItems}
             agentStatus={ss.agentStatus}

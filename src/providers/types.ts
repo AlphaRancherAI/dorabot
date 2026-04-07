@@ -95,6 +95,9 @@ export interface Provider {
   /** Get current auth status */
   getAuthStatus(): Promise<ProviderAuthStatus>;
 
+  /** Reset/clear auth credentials */
+  resetAuth(): void;
+
   /** Authenticate with an API key */
   loginWithApiKey(apiKey: string): Promise<ProviderAuthStatus>;
 

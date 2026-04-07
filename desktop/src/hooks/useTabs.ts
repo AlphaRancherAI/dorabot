@@ -31,6 +31,7 @@ export function isChatTab(tab: Tab): tab is ChatTab {
 
 const TABS_STORAGE_KEY = 'dorabot:tabs';
 const ACTIVE_TAB_STORAGE_KEY = 'dorabot:activeTabId';
+const LAST_READ_KEY = 'dorabot:lastReadAt';
 
 function makeDefaultChatTab(): ChatTab {
   const chatId = crypto.randomUUID();
@@ -89,7 +90,9 @@ export function useTabs(gw: ReturnType<typeof useGateway>, layout: ReturnType<ty
   const migratedRef = useRef(false);
   const closingRef = useRef(false);
   const subscribedSessionKeysRef = useRef<Set<string>>(new Set());
-  const streamCountRef = useRef<Record<string, number>>({});
+  const lastReadAtRef = useRef<Record<string, number>>(
+    (() => { try { return JSON.parse(localStorage.getItem(LAST_READ_KEY) || '{}'); } catch { return {}; } })()
+  );
   const [unreadBySession, setUnreadBySession] = useState<Record<string, number>>({});
 
   // Migrate: if layout groups are empty but we have tabs, put them all in g0
@@ -327,6 +330,10 @@ export function useTabs(gw: ReturnType<typeof useGateway>, layout: ReturnType<ty
 
     if (isChatTab(tab)) {
       gw.setActiveSession(tab.sessionKey, tab.chatId);
+      const items = gw.sessionStates[tab.sessionKey]?.chatItems || [];
+      const maxTs = items.length > 0 ? Math.max(...items.map(i => i.timestamp)) : Date.now();
+      lastReadAtRef.current[tab.sessionKey] = maxTs;
+      try { localStorage.setItem(LAST_READ_KEY, JSON.stringify(lastReadAtRef.current)); } catch {}
       setUnreadBySession(prev => {
         if (!prev[tab.sessionKey]) return prev;
         const { [tab.sessionKey]: _, ...rest } = prev;
@@ -515,43 +522,55 @@ export function useTabs(gw: ReturnType<typeof useGateway>, layout: ReturnType<ty
     if (target) focusTab(target.id, group.id);
   }, [tabs, layout, focusTab]);
 
-  // Track unread counts for chat tabs not currently visible as active pane tabs.
+  // Track unread counts using persisted lastReadAt timestamps.
+  // Only messages with timestamp > lastReadAt[sk] are counted as unread.
   useEffect(() => {
     const visibleActiveTabIds = new Set(
       layout.visibleGroups.map(g => g.activeTabId).filter((id): id is string => Boolean(id)),
     );
-    const nextCounts = { ...streamCountRef.current };
-    const deltas: Record<string, number> = {};
+    const nextUnread: Record<string, number> = {};
 
     for (const tab of tabs) {
       if (!isChatTab(tab)) continue;
       const sk = tab.sessionKey;
-      const current = gw.sessionStates[sk]?.chatItems.length || 0;
-      const previous = nextCounts[sk];
-      if (previous == null) {
-        nextCounts[sk] = current;
+      const items = gw.sessionStates[sk]?.chatItems || [];
+
+      if (visibleActiveTabIds.has(tab.id)) {
+        // Tab is visible — mark all current messages as read
+        if (items.length > 0) {
+          const maxTs = Math.max(...items.map(i => i.timestamp));
+          if (!lastReadAtRef.current[sk] || maxTs > lastReadAtRef.current[sk]) {
+            lastReadAtRef.current[sk] = maxTs;
+            try { localStorage.setItem(LAST_READ_KEY, JSON.stringify(lastReadAtRef.current)); } catch {}
+          }
+        }
+        nextUnread[sk] = 0;
         continue;
       }
-      if (current > previous && !visibleActiveTabIds.has(tab.id)) {
-        deltas[sk] = (deltas[sk] || 0) + (current - previous);
+
+      const lastReadAt = lastReadAtRef.current[sk];
+      if (lastReadAt == null) {
+        // First time seeing this session — initialize baseline so existing history isn't unread
+        if (items.length > 0) {
+          lastReadAtRef.current[sk] = Math.max(...items.map(i => i.timestamp));
+          try { localStorage.setItem(LAST_READ_KEY, JSON.stringify(lastReadAtRef.current)); } catch {}
+        }
+        nextUnread[sk] = 0;
+        continue;
       }
-      nextCounts[sk] = current;
+
+      nextUnread[sk] = items.filter(i => i.timestamp > lastReadAt).length;
     }
 
-    // remove sessions for tabs that no longer exist
-    const liveSessionKeys = new Set(tabs.filter(isChatTab).map(t => t.sessionKey));
-    for (const sk of Object.keys(nextCounts)) {
-      if (!liveSessionKeys.has(sk)) delete nextCounts[sk];
-    }
-    streamCountRef.current = nextCounts;
-
-    if (Object.keys(deltas).length === 0) return;
     setUnreadBySession(prev => {
+      let changed = false;
       const next = { ...prev };
-      for (const [sk, add] of Object.entries(deltas)) {
-        next[sk] = (next[sk] || 0) + add;
+      const allKeys = new Set([...Object.keys(prev), ...Object.keys(nextUnread)]);
+      for (const sk of allKeys) {
+        const newVal = nextUnread[sk] ?? 0;
+        if ((prev[sk] ?? 0) !== newVal) { next[sk] = newVal; changed = true; }
       }
-      return next;
+      return changed ? next : prev;
     });
   }, [gw.sessionStates, tabs, layout.visibleGroups]);
 
