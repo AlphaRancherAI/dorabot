@@ -184,7 +184,8 @@ export class GatewayManager {
         console.log(`[gateway-manager] Gateway exited with code ${code}`);
         this.process = null;
 
-        if (!this.stopping && this.retries < this.maxRetries) {
+        if (this.stopping) return; // intentional stop — caller handles lifecycle
+        if (this.retries < this.maxRetries) {
           this.retries++;
           console.log(`[gateway-manager] Restarting gateway (attempt ${this.retries}/${this.maxRetries})`);
           setTimeout(() => this.start(), 1000);

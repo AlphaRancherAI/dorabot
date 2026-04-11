@@ -98,6 +98,9 @@ export interface Provider {
   /** Reset/clear auth credentials */
   resetAuth(): void;
 
+  /** Reload auth from keychain without clearing stored credentials */
+  reloadAuth?(): void;
+
   /** Authenticate with an API key */
   loginWithApiKey(apiKey: string): Promise<ProviderAuthStatus>;
 

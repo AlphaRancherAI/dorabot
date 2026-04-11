@@ -667,6 +667,14 @@ export class ClaudeProvider implements Provider {
     reconnectRequired = false;
   }
 
+  /** Reload auth from keychain/env without clearing stored credentials. */
+  reloadAuth(): void {
+    this._cachedAuth = null;
+    _cliHasAuth = null;
+    delete process.env.CLAUDE_CODE_OAUTH_TOKEN;
+    reconnectRequired = false;
+  }
+
   async *query(opts: ProviderRunOptions): AsyncGenerator<ProviderMessage, ProviderQueryResult, unknown> {
     // refresh env token for dorabot_oauth only (cli_keychain handles its own)
     const method = getActiveAuthMethod();

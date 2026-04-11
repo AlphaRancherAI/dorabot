@@ -23,7 +23,7 @@ import {
   Globe, Search, Bot, MessageCircle, ListChecks, FileCode,
   MessageSquare, Camera, Monitor, Clock, Wrench, ArrowUp, LayoutGrid,
   Smile, Image, Brain, MapPin, PenLine, GitPullRequest, Radio,
-  Paperclip, X, Cpu, RefreshCw,
+  Paperclip, X, Cpu, RefreshCw, RotateCcw,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -1078,6 +1078,15 @@ export function ChatView({ gateway, chatItems, agentStatus, pendingQuestion, ses
               <Paperclip className="w-4 h-4 text-muted-foreground" />
             </Button>
             <span className="flex-1" />
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-8 w-8 p-0 rounded-lg mr-1"
+              onClick={() => window.electronAPI?.gatewayRestart?.()}
+              title="Restart gateway"
+            >
+              <RotateCcw className="w-4 h-4 text-muted-foreground" />
+            </Button>
             <Button
               variant="ghost"
               size="sm"

@@ -1770,6 +1770,11 @@ export function useGateway() {
     setProviderInfo(prev => prev ? { ...prev, auth: { authenticated: false } as ProviderAuthInfo } : null);
   }, [rpc]);
 
+  const reloadAuth = useCallback(async (provider: string) => {
+    const res = await rpc('provider.reload', { provider }) as { ok: boolean; status: ProviderAuthInfo };
+    if (res?.status) setProviderInfo(prev => prev ? { ...prev, auth: res.status } : null);
+  }, [rpc]);
+
   const startOAuth = useCallback(async (provider: string) => {
     return await rpc('provider.auth.oauth', { provider }) as { authUrl: string; loginId: string };
   }, [rpc]);
@@ -1947,6 +1952,7 @@ export function useGateway() {
     setProvider,
     authWithApiKey,
     resetAuth,
+    reloadAuth,
     startOAuth,
     completeOAuth,
     checkProvider,

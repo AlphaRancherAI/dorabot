@@ -4500,6 +4500,19 @@ export async function startGateway(opts: GatewayOptions): Promise<Gateway> {
           }
         }
 
+        case 'provider.reload': {
+          try {
+            const providerName = (params?.provider as string) || config.provider.name;
+            const p = await getProviderByName(providerName);
+            p.reloadAuth?.();
+            const status = await p.getAuthStatus();
+            broadcast({ event: 'provider.auth_complete', data: { provider: providerName, status } });
+            return { id, result: { ok: true, status } };
+          } catch (err) {
+            return { id, error: err instanceof Error ? err.message : String(err) };
+          }
+        }
+
         case 'provider.check': {
           try {
             const providerName = (params?.provider as string) || config.provider.name;
