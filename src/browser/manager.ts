@@ -29,6 +29,11 @@ let browserProcess: ReturnType<typeof import('node:child_process').spawn> | null
 // browser executable → real macOS user data dir
 const BROWSER_INFO: { exec: string; dataDir: string; appName: string }[] = [
   {
+    exec: '/Applications/Google Chrome Canary.app/Contents/MacOS/Google Chrome Canary',
+    dataDir: join(homedir(), 'Library', 'Application Support', 'Google', 'Chrome Canary'),
+    appName: 'Google Chrome Canary',
+  },
+  {
     exec: '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
     dataDir: join(homedir(), 'Library', 'Application Support', 'Google', 'Chrome'),
     appName: 'Google Chrome',
@@ -47,11 +52,6 @@ const BROWSER_INFO: { exec: string; dataDir: string; appName: string }[] = [
     exec: '/Applications/Chromium.app/Contents/MacOS/Chromium',
     dataDir: join(homedir(), 'Library', 'Application Support', 'Chromium'),
     appName: 'Chromium',
-  },
-  {
-    exec: '/Applications/Google Chrome Canary.app/Contents/MacOS/Google Chrome Canary',
-    dataDir: join(homedir(), 'Library', 'Application Support', 'Google', 'Chrome Canary'),
-    appName: 'Google Chrome Canary',
   },
 ];
 

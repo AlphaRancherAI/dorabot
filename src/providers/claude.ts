@@ -518,7 +518,21 @@ export class ClaudeProvider implements Provider {
           };
           return this._cachedAuth;
         }
-        // token expired and refresh failed — needs re-auth
+        // Refresh failed or reconnectRequired — but if we still have saved tokens,
+        // treat as authenticated so the UI stays usable. The tokenHealth/reconnectRequired
+        // flags will show the warning indicator without disabling input.
+        if (tokens?.access_token) {
+          return {
+            authenticated: true,
+            method: 'oauth',
+            identity: 'Claude subscription',
+            storageBackend: tokenState.storageBackend,
+            tokenHealth: 'expired',
+            nextRefreshAt: tokenState.nextRefreshAt,
+            reconnectRequired: true,
+          };
+        }
+        // No tokens at all — genuinely not set up
         return {
           authenticated: false,
           method: 'oauth',
