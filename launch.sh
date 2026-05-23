@@ -4,16 +4,33 @@
 # Usage:
 #   ./launch.sh                         # default ~/.dorabot
 #   DORABOT_HOME=~/.dorabot2 ./launch.sh
-#
-# On first run or after updates, build first:
-#   npm install && npm run build
-#   cd desktop && npm install && cd ..
-#   ./launch.sh
 
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-cd "$SCRIPT_DIR/desktop"
+cd "$SCRIPT_DIR"
+
+# Install root deps and build backend if needed
+if [ ! -d node_modules ]; then
+  echo "[setup] Installing root dependencies..."
+  npm install
+fi
+if [ ! -d dist ]; then
+  echo "[setup] Building backend..."
+  npm run build
+fi
+
+# Install desktop deps and build renderer if needed
+if [ ! -d desktop/node_modules ]; then
+  echo "[setup] Installing desktop dependencies..."
+  npm -C desktop install
+fi
+if [ ! -d desktop/out ]; then
+  echo "[setup] Building desktop..."
+  npm -C desktop run build
+fi
+
+cd desktop
 
 # ELECTRON_RUN_AS_NODE must be cleared — if this shell was spawned by
 # Claude Code (itself an Electron app), the var is inherited and causes
