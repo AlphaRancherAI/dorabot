@@ -263,8 +263,15 @@ osascript -e 'tell application "Google Chrome" to execute active tab of front wi
 
 ## Calendar
 
+### List calendars
+
 ```bash
-# Get today's events from a calendar
+osascript -e 'tell application "Calendar" to get name of every calendar'
+```
+
+### Get today's events
+
+```bash
 osascript -e '
 tell application "Calendar"
     set startDate to (current date)
@@ -277,8 +284,27 @@ tell application "Calendar"
     end repeat
     return output
 end tell'
+```
 
-# Create event
+### Get events in a date range
+
+```bash
+osascript -e '
+tell application "Calendar"
+    set startDate to date "Monday, May 26, 2026 at 12:00:00 AM"
+    set endDate to date "Sunday, June 1, 2026 at 11:59:59 PM"
+    set evts to every event of calendar "Work" whose start date >= startDate and start date < endDate
+    set output to {}
+    repeat with e in evts
+        set end of output to (summary of e) & " | " & (start date of e as text) & " - " & (end date of e as text)
+    end repeat
+    return output
+end tell'
+```
+
+### Create a one-time event
+
+```bash
 osascript -e '
 tell application "Calendar"
     tell calendar "Work"
@@ -287,10 +313,135 @@ tell application "Calendar"
         make new event at end with properties {summary:"Meeting", start date:startDate, end date:endDate}
     end tell
 end tell'
-
-# List calendar names
-osascript -e 'tell application "Calendar" to get name of every calendar'
 ```
+
+### Create a recurring event
+
+```bash
+# Weekly recurring event (every Sunday at 7 PM)
+osascript -e '
+tell application "Calendar"
+    tell calendar "Home"
+        set startDate to date "Sunday, May 25, 2026 at 7:00:00 PM"
+        set endDate to startDate + (30 * minutes)
+        set newEvent to make new event at end with properties {summary:"Weekly Check-in", start date:startDate, end date:endDate, description:"Notes here"}
+        -- Recurrence uses iCal RRULE format
+        set recurrence of newEvent to "FREQ=WEEKLY;BYDAY=SU"
+    end tell
+end tell'
+
+# Daily recurring event
+osascript -e '
+tell application "Calendar"
+    tell calendar "Work"
+        set startDate to date "Monday, May 26, 2026 at 9:00:00 AM"
+        set endDate to startDate + (15 * minutes)
+        set newEvent to make new event at end with properties {summary:"Standup", start date:startDate, end date:endDate}
+        set recurrence of newEvent to "FREQ=DAILY;BYDAY=MO,TU,WE,TH,FR"
+    end tell
+end tell'
+
+# Monthly event (first Monday of each month)
+osascript -e '
+tell application "Calendar"
+    tell calendar "Work"
+        set startDate to date "Monday, June 2, 2026 at 10:00:00 AM"
+        set endDate to startDate + (1 * hours)
+        set newEvent to make new event at end with properties {summary:"Monthly Review", start date:startDate, end date:endDate}
+        set recurrence of newEvent to "FREQ=MONTHLY;BYDAY=1MO"
+    end tell
+end tell'
+
+# Recurring with end date (COUNT or UNTIL)
+osascript -e '
+tell application "Calendar"
+    tell calendar "Work"
+        set startDate to date "Wednesday, May 28, 2026 at 3:00:00 PM"
+        set endDate to startDate + (1 * hours)
+        set newEvent to make new event at end with properties {summary:"Sprint", start date:startDate, end date:endDate}
+        set recurrence of newEvent to "FREQ=WEEKLY;BYDAY=WE;COUNT=10"
+    end tell
+end tell'
+```
+
+### Create an all-day event
+
+```bash
+osascript -e '
+tell application "Calendar"
+    tell calendar "Home"
+        set startDate to date "Monday, May 26, 2026 at 12:00:00 AM"
+        set endDate to startDate + (1 * days)
+        make new event at end with properties {summary:"Memorial Day", start date:startDate, end date:endDate, allday event:true}
+    end tell
+end tell'
+```
+
+### Create event with location and URL
+
+```bash
+osascript -e '
+tell application "Calendar"
+    tell calendar "Work"
+        set startDate to date "Friday, June 5, 2026 at 3:30:00 PM"
+        set endDate to startDate + (3 * hours)
+        make new event at end with properties {summary:"Final Presentations", start date:startDate, end date:endDate, location:"Room 101", url:"https://zoom.us/j/123"}
+    end tell
+end tell'
+```
+
+### Delete an event by name
+
+```bash
+# Delete first matching event (careful: no undo)
+osascript -e '
+tell application "Calendar"
+    tell calendar "Home"
+        set matchingEvents to every event whose summary is "Weekly Check-in"
+        repeat with e in matchingEvents
+            delete e
+        end repeat
+    end tell
+end tell'
+```
+
+### Modify an existing event
+
+```bash
+# Change the time of an event
+osascript -e '
+tell application "Calendar"
+    tell calendar "Work"
+        set e to first event whose summary is "Meeting"
+        set start date of e to date "Tuesday, January 16, 2026 at 3:00:00 PM"
+        set end date of e to date "Tuesday, January 16, 2026 at 4:00:00 PM"
+    end tell
+end tell'
+
+# Rename an event
+osascript -e '
+tell application "Calendar"
+    tell calendar "Work"
+        set e to first event whose summary is "Meeting"
+        set summary of e to "Updated Meeting"
+    end tell
+end tell'
+```
+
+### RRULE reference (for recurrence property)
+
+| Pattern | RRULE |
+|---------|-------|
+| Every day | `FREQ=DAILY` |
+| Weekdays | `FREQ=DAILY;BYDAY=MO,TU,WE,TH,FR` |
+| Every week on Mon/Wed/Fri | `FREQ=WEEKLY;BYDAY=MO,WE,FR` |
+| Every 2 weeks on Tuesday | `FREQ=WEEKLY;INTERVAL=2;BYDAY=TU` |
+| Monthly on the 15th | `FREQ=MONTHLY;BYMONTHDAY=15` |
+| First Monday of month | `FREQ=MONTHLY;BYDAY=1MO` |
+| Last Friday of month | `FREQ=MONTHLY;BYDAY=-1FR` |
+| Yearly on March 1 | `FREQ=YEARLY;BYMONTH=3;BYMONTHDAY=1` |
+| 10 occurrences then stop | append `;COUNT=10` |
+| Until a date | append `;UNTIL=20261231T000000Z` |
 
 ---
 
