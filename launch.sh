@@ -10,6 +10,14 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 cd "$SCRIPT_DIR"
 
+# better-sqlite3 requires native compilation — ensure Xcode CLT is present
+if ! xcode-select -p &>/dev/null; then
+  echo "[setup] Xcode Command Line Tools not found. Installing..."
+  xcode-select --install
+  echo "[setup] Re-run this script once the Xcode CLT installation completes."
+  exit 1
+fi
+
 # Install root deps and build backend if needed
 if [ ! -d node_modules ]; then
   echo "[setup] Installing root dependencies..."
