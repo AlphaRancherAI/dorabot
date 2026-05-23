@@ -1,0 +1,3 @@
+osacompile -o ~/Desktop/Dorabot.app << 'EOF'
+do shell script "/Users/geh/workspace/dorabot/launch.sh > /tmp/dorabot.log 2>&1 &"
+EOF
