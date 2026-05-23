@@ -30,7 +30,7 @@
     "@openai/codex-sdk": "^0.98.0",
     "@types/luxon": "^3.7.1",
     "@whiskeysockets/baileys": "^6.7.0",
-    "better-sqlite3": "^12.6.2",
+    "better-sqlite3": "^12.10.0",
     "dotenv": "^17.2.4",
     "grammy": "^1.21.0",
     "gray-matter": "^4.0.3",
@@ -53,7 +53,7 @@
     "typescript": "^5.6.0"
   },
   "engines": {
-    "node": ">=22.0.0"
+    "node": ">=18.0.0"
   },
   "repository": "github:suitedaces/dorabot"
 }
