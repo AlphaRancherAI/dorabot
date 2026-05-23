@@ -89,6 +89,25 @@ dorabot -i            # interactive terminal
 dorabot -m "message"  # one-off question
 ```
 
+### Launch script
+
+`launch.sh` in the repo root handles first-run setup (installs deps, builds backend and desktop) and launches the app:
+
+```bash
+./launch.sh                          # default ~/.dorabot
+DORABOT_HOME=~/.dorabot2 ./launch.sh # named instance
+```
+
+**Create a desktop shortcut (macOS):**
+
+```bash
+osacompile -o ~/Desktop/Dorabot.app << 'EOF'
+do shell script "/path/to/dorabot/launch.sh > /tmp/dorabot.log 2>&1 &"
+EOF
+```
+
+Replace `/path/to/dorabot` with your actual repo path (e.g. `/Users/you/workspace/dorabot`).
+
 ## Multiple Instances
 
 Run isolated instances with separate memories, goals, channels, and databases using `DORABOT_HOME`:
