@@ -29,8 +29,13 @@ export async function getProviderByName(name: string): Promise<Provider> {
         providers.set(name, new OllamaProvider());
         break;
       }
+      case 'claude-cli': {
+        const { ClaudeCliProvider } = await import('./claude-cli.js');
+        providers.set(name, new ClaudeCliProvider());
+        break;
+      }
       default:
-        throw new Error(`Unknown provider: ${name}. Supported: claude, codex, ollama`);
+        throw new Error(`Unknown provider: ${name}. Supported: claude, codex, ollama, claude-cli`);
     }
   }
   return providers.get(name)!;
