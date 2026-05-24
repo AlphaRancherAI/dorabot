@@ -3413,6 +3413,23 @@ export async function startGateway(opts: GatewayOptions): Promise<Gateway> {
           return { id, result: { success: true } };
         }
 
+        case 'message.proxy': {
+          const { action, channel, target, message, messageId, chatId, media, replyTo } = (params || {}) as Record<string, string>;
+          const handler = getChannelHandler(channel);
+          if (!handler) return { id, error: `No handler registered for channel: ${channel}` };
+          if (action === 'send') {
+            const result = await handler.send(target, message, { media, replyTo });
+            return { id, result };
+          } else if (action === 'edit') {
+            await handler.edit(messageId, message, chatId || target);
+            return { id, result: { ok: true } };
+          } else if (action === 'delete') {
+            await handler.delete(messageId, chatId || target);
+            return { id, result: { ok: true } };
+          }
+          return { id, error: `Unknown action: ${action}` };
+        }
+
         case 'calendar.list':
         case 'cron.list': {
           const items = scheduler?.listItems() || loadCalendarItems();
