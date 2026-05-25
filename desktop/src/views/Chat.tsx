@@ -23,9 +23,10 @@ import {
   Globe, Search, Bot, MessageCircle, ListChecks, FileCode,
   MessageSquare, Camera, Monitor, Clock, Wrench, ArrowUp, LayoutGrid,
   Smile, Image, Brain, MapPin, PenLine, GitPullRequest, Radio,
-  Paperclip, X, Cpu, RefreshCw, RotateCcw,
+  Paperclip, X, Cpu, RotateCcw, Key, ClipboardPaste, Loader2, AlertCircle,
   type LucideIcon,
 } from 'lucide-react';
+import { Input } from '@/components/ui/input';
 
 type Props = {
   gateway: ReturnType<typeof useGateway>;
@@ -693,6 +694,86 @@ export function ChatView({ gateway, chatItems, agentStatus, pendingQuestion, ses
   const authHealth = gateway.providerInfo?.auth?.tokenHealth;
   const authNeedsRenewal = gateway.providerInfo?.auth?.reconnectRequired || authHealth === 'expired';
 
+  const [authPanelMode, setAuthPanelMode] = useState<null | 'oauth-paste' | 'apikey'>(null);
+  const [authCode, setAuthCode] = useState('');
+  const [authKey, setAuthKey] = useState('');
+  const [authLoading, setAuthLoading] = useState(false);
+  const [authError, setAuthError] = useState<string | null>(null);
+
+  const handleAuthKeyClick = useCallback(async () => {
+    if (authPanelMode) {
+      setAuthPanelMode(null);
+      setAuthCode('');
+      setAuthKey('');
+      setAuthError(null);
+      return;
+    }
+    const method = gateway.providerInfo?.auth?.method;
+    if (method === 'apikey') {
+      setAuthPanelMode('apikey');
+      return;
+    }
+    setAuthLoading(true);
+    setAuthError(null);
+    try {
+      const { authUrl } = await gateway.startOAuth('claude');
+      setAuthPanelMode('oauth-paste');
+      if (authUrl) {
+        (window as any).electronAPI?.openExternal?.(authUrl) || window.open(authUrl, '_blank');
+      }
+    } catch (err) {
+      setAuthError(err instanceof Error ? err.message : 'Failed to start OAuth');
+    } finally {
+      setAuthLoading(false);
+    }
+  }, [authPanelMode, gateway]);
+
+  const handleAuthCodeSubmit = useCallback(async () => {
+    const code = authCode.trim();
+    if (!code) return;
+    setAuthLoading(true);
+    setAuthError(null);
+    try {
+      const res = await gateway.completeOAuth('claude', code);
+      if (res.authenticated) {
+        setAuthPanelMode(null);
+        setAuthCode('');
+      } else {
+        setAuthError(res.error || 'Authentication failed');
+      }
+    } catch (err) {
+      setAuthError(err instanceof Error ? err.message : 'Failed to authenticate');
+    } finally {
+      setAuthLoading(false);
+    }
+  }, [authCode, gateway]);
+
+  const handleAuthKeySubmit = useCallback(async () => {
+    if (!authKey.startsWith('sk-ant-') || authKey.length < 20) return;
+    setAuthLoading(true);
+    setAuthError(null);
+    try {
+      const res = await gateway.authWithApiKey('claude', authKey);
+      if (res.authenticated) {
+        setAuthPanelMode(null);
+        setAuthKey('');
+      } else {
+        setAuthError(res.error || 'Authentication failed');
+      }
+    } catch (err) {
+      setAuthError(err instanceof Error ? err.message : 'Failed to authenticate');
+    } finally {
+      setAuthLoading(false);
+    }
+  }, [authKey, gateway]);
+
+  const pasteAuthCode = useCallback(async () => {
+    try {
+      const text = await navigator.clipboard.readText();
+      if (text) setAuthCode(text.trim());
+    } catch { /* clipboard access denied */ }
+  }, []);
+
   useEffect(() => {
     const el = landingRef.current;
     if (!el) return;
@@ -865,12 +946,14 @@ export function ChatView({ gateway, chatItems, agentStatus, pendingQuestion, ses
             <span>{formatTime(item.timestamp)}</span>
           </div>
         );
-      case 'error':
+      case 'error': {
+        const is401 = /authentication_error|401|OAuth token has expired|Invalid bearer token|Invalid API key/i.test(item.content);
         return (
           <div key={i} className="text-destructive py-1 break-words min-w-0">
-            {item.content}
+            {is401 ? 'Please refresh API key' : item.content}
           </div>
         );
+      }
     }
   };
 
@@ -1065,6 +1148,58 @@ export function ChatView({ gateway, chatItems, agentStatus, pendingQuestion, ses
             className="hidden"
             onChange={e => { if (e.target.files) addImagesFromFiles(e.target.files); e.target.value = ''; }}
           />
+          {authPanelMode && (
+            <div className="px-3 pb-2 space-y-1.5">
+              {authPanelMode === 'oauth-paste' ? (
+                <>
+                  <div className="text-[10px] text-muted-foreground">paste the auth code from the browser callback page</div>
+                  <div className="flex gap-1.5">
+                    <Input
+                      type="text"
+                      placeholder="paste auth code here..."
+                      value={authCode}
+                      onChange={e => { setAuthCode(e.target.value); setAuthError(null); }}
+                      onKeyDown={e => e.key === 'Enter' && handleAuthCodeSubmit()}
+                      className="h-7 text-[11px] font-mono flex-1"
+                      disabled={authLoading}
+                      autoFocus
+                    />
+                    <Button variant="outline" size="sm" className="h-7 px-2" onClick={pasteAuthCode} disabled={authLoading} title="paste from clipboard">
+                      <ClipboardPaste className="w-3.5 h-3.5" />
+                    </Button>
+                    <Button size="sm" className="h-7 text-[11px] px-3" onClick={handleAuthCodeSubmit} disabled={!authCode.trim() || authLoading}>
+                      {authLoading ? <Loader2 className="w-3 h-3 animate-spin" /> : 'connect'}
+                    </Button>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="text-[10px] text-muted-foreground">enter your Anthropic API key</div>
+                  <div className="flex gap-1.5">
+                    <Input
+                      type="password"
+                      placeholder="sk-ant-..."
+                      value={authKey}
+                      onChange={e => { setAuthKey(e.target.value); setAuthError(null); }}
+                      onKeyDown={e => e.key === 'Enter' && handleAuthKeySubmit()}
+                      className="h-7 text-[11px] font-mono flex-1"
+                      disabled={authLoading}
+                      autoFocus
+                    />
+                    <Button size="sm" className="h-7 text-[11px] px-3" onClick={handleAuthKeySubmit} disabled={!authKey.startsWith('sk-ant-') || authKey.length < 20 || authLoading}>
+                      {authLoading ? <Loader2 className="w-3 h-3 animate-spin" /> : 'connect'}
+                    </Button>
+                  </div>
+                </>
+              )}
+              {authError && (
+                <div className="flex items-center gap-1 text-[10px] text-destructive">
+                  <AlertCircle className="w-3 h-3 shrink-0" />
+                  {authError}
+                </div>
+              )}
+            </div>
+          )}
           <div className="flex items-center px-3 pb-3">
             <ModelSelector gateway={gateway} disabled={!connected} sessionKey={sessionKey || ''} sessionState={gateway.sessionStates[sessionKey || '']} />
             <Button
@@ -1090,11 +1225,12 @@ export function ChatView({ gateway, chatItems, agentStatus, pendingQuestion, ses
             <Button
               variant="ghost"
               size="sm"
-              className={cn('h-8 w-8 p-0 rounded-lg mr-1', authNeedsRenewal && 'text-destructive hover:text-destructive')}
-              onClick={onNavigateSettings}
-              title={authNeedsRenewal ? 'Auth token expired — click to re-authenticate' : 'Provider settings'}
+              className={cn('h-8 w-8 p-0 rounded-lg mr-1', (authNeedsRenewal || authPanelMode) && 'text-destructive hover:text-destructive')}
+              onClick={handleAuthKeyClick}
+              disabled={authLoading}
+              title={authNeedsRenewal ? 'Auth token expired — click to re-authenticate' : authPanelMode ? 'Cancel' : 'Re-authenticate'}
             >
-              <RefreshCw className={cn('w-4 h-4', authNeedsRenewal ? 'text-destructive' : 'text-muted-foreground')} />
+              {authLoading ? <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" /> : <Key className={cn('w-4 h-4', authNeedsRenewal ? 'text-destructive' : authPanelMode ? 'text-destructive' : 'text-muted-foreground')} />}
             </Button>
             {isRunning ? (
               <Button

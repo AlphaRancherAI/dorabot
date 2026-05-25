@@ -1,70 +1,32 @@
 # Jarvis Quickstart
 
-## Running the app
+## Starting all instances
+
+All instances use the Electron binary directly from `desktop/node_modules/`. Run from the `desktop/` directory. After any frontend code change, run `npm run build` once first.
 
 ```bash
-cd desktop && npm run dev
-```
+cd ~/workspace/dorabot/desktop
 
-This starts the gateway subprocess and the Electron desktop with HMR. Do **not** run `npm run dev:gateway` at the same time — they share the same socket (`~/.dorabot/gateway.sock`) and will conflict.
-
----
-
-## Multiple instances
-
-Each instance needs its own data directory. Set `DORABOT_HOME` to a different path for each one.
-
-Since the app is updated frequently, the recommended approach is to launch the binary directly from the terminal rather than maintaining separate `.app` bundles.
-
-```bash
-# Instance 1 (default — uses ~/.dorabot)
-/Applications/Jarvis.app/Contents/MacOS/Jarvis
+# Instance 1 (default ~/.dorabot)
+ELECTRON_RUN_AS_NODE= node_modules/electron/dist/Electron.app/Contents/MacOS/Electron .
 
 # Instance 2
-DORABOT_HOME=~/.dorabot2 /Applications/Jarvis.app/Contents/MacOS/Jarvis
+ELECTRON_RUN_AS_NODE= DORABOT_HOME=~/.dorabot2 node_modules/electron/dist/Electron.app/Contents/MacOS/Electron .
 
 # Instance 3
-DORABOT_HOME=~/.dorabot3 /Applications/Jarvis.app/Contents/MacOS/Jarvis
+ELECTRON_RUN_AS_NODE= DORABOT_HOME=~/.dorabot3 node_modules/electron/dist/Electron.app/Contents/MacOS/Electron .
 
 # Instance 4
-DORABOT_HOME=~/.dorabot4 /Applications/Jarvis.app/Contents/MacOS/Jarvis
+ELECTRON_RUN_AS_NODE= DORABOT_HOME=~/.dorabot4 node_modules/electron/dist/Electron.app/Contents/MacOS/Electron .
 ```
 
-Each instance gets its own socket, database, config, channels, and gateway token. They all show as "Jarvis" in the dock. macOS `open -a Jarvis` won't work for instances 2–4 since it doesn't forward env vars — use the binary path above.
+`ELECTRON_RUN_AS_NODE=` (empty) is required — Claude Code sets this var in its shell env and it breaks Electron if inherited.
 
-### Dev mode (instances 2–4)
-
-Instance 1 runs via `npm run dev` (electron-vite with HMR). For instances 2–4, use the **built renderer** — do **not** set `ELECTRON_RENDERER_URL`, as pointing multiple instances at the same Vite dev server causes blank UI.
-
-First, build the renderer once (or after any frontend changes):
-
-```bash
-cd desktop && npm run build
-```
-
-Then launch additional instances directly against the built output:
-
-```bash
-# From workspace/dorabot/desktop/
-ELECTRON_RUN_AS_NODE= DORABOT_HOME=~/.dorabot2 node_modules/electron/dist/Electron.app/Contents/MacOS/Electron . &
-ELECTRON_RUN_AS_NODE= DORABOT_HOME=~/.dorabot3 node_modules/electron/dist/Electron.app/Contents/MacOS/Electron . &
-ELECTRON_RUN_AS_NODE= DORABOT_HOME=~/.dorabot4 node_modules/electron/dist/Electron.app/Contents/MacOS/Electron . &
-```
-
-You can also wrap these in shell aliases for convenience:
-
-```bash
-# ~/.zshrc
-JARVIS=~/workspace/dorabot/desktop/node_modules/electron/dist/Electron.app/Contents/MacOS/Electron
-JARVIS_APP=~/workspace/dorabot/desktop
-alias jarvis2='ELECTRON_RUN_AS_NODE= DORABOT_HOME=~/.dorabot2 "$JARVIS" "$JARVIS_APP"'
-alias jarvis3='ELECTRON_RUN_AS_NODE= DORABOT_HOME=~/.dorabot3 "$JARVIS" "$JARVIS_APP"'
-alias jarvis4='ELECTRON_RUN_AS_NODE= DORABOT_HOME=~/.dorabot4 "$JARVIS" "$JARVIS_APP"'
-```
+Each instance gets its own socket, database, config, channels, and gateway token.
 
 ---
 
-## Building & packaging
+## Building
 
 ```bash
 # Build backend
@@ -78,4 +40,4 @@ cd desktop && npm run package
 
 ## Auth
 
-Claude OAuth tokens are stored in the macOS keychain via the `dorabot_oauth` method. Each instance shares the same keychain entry (same Claude account). To use a different account per instance, use an API key instead (`loginWithApiKey` via the Settings view).
+Claude OAuth tokens are stored in the macOS keychain via the `dorabot_oauth` method. Each instance shares the same keychain entry (same Claude account). To use a different account per instance, use an API key instead via Settings.

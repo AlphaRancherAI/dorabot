@@ -193,6 +193,79 @@ Path access: `isPathAllowed()` checks ALWAYS_DENIED list first (`~/.ssh`, `~/.gn
 - **Tool approval**: 3 tiers (auto-allow, notify, require-approval), 5-minute timeout, inline keyboard on Telegram
 - **Idle timeout**: 4 hours resets session on next message
 
+## Troubleshooting
+
+### Stuck "PENDING" task approvals in chat UI
+
+**Symptom**: The chat UI shows "N PENDING" with task_start approvals that won't dismiss when clicking "allow all" or individual checkmarks. Refreshing (Cmd+R) or closing/reopening the tab doesn't help.
+
+**Root cause**: Tasks were created by writing directly to the `tasks` table in `dorabot.db` instead of through the normal agent flow. The gateway's in-memory `pendingApprovals` Map (in `src/gateway/server.ts`) never had these requestIds, so the `tool.approve` RPC returns "no pending approval with that ID" silently. On refresh, `sessionSnapshots` replays `agent.tool_approval` events from `stream_events`, re-adding them to the UI.
+
+**Fix**: Delete the orphaned `agent.tool_approval` events from `stream_events`:
+
+```python
+import sqlite3
+conn = sqlite3.connect('~/.dorabot/dorabot.db')
+conn.execute("""
+    DELETE FROM stream_events
+    WHERE event_type = 'agent.tool_approval'
+    AND session_key = '<session_key>'
+""")
+conn.commit()
+```
+
+Then Cmd+R to refresh. The session_key format is `desktop:dm:<chat_id>`.
+
+**Prevention**: Always create tasks through the MCP `tasks_add` tool or the Goals UI, not by writing directly to SQLite. The MCP tool registers the approval request with the gateway's in-memory state, which is required for the approve/deny flow to work.
+
+### Tasks tool returns "path argument must be of type string. Received undefined"
+
+**Symptom**: All task MCP tools (`tasks_view`, `tasks_add`, etc.) fail with this error.
+
+**Root cause**: Task records in the `tasks` table are missing the `planDocPath` field in their JSON data. The tool tries to read the PLAN.md file at that path and crashes when it's undefined.
+
+**Fix**: Add `planDocPath` to each task's JSON data and ensure the PLAN.md file exists:
+
+```python
+import sqlite3, json, os
+conn = sqlite3.connect('~/.dorabot/dorabot.db')
+for row in conn.execute('SELECT id, data FROM tasks').fetchall():
+    d = json.loads(row[1])
+    if 'planDocPath' not in d:
+        plan_path = f'~/.dorabot/plans/tasks/{row[0]}/PLAN.md'
+        d['planDocPath'] = os.path.expanduser(plan_path)
+        conn.execute('UPDATE tasks SET data = ? WHERE id = ?', (json.dumps(d), row[0]))
+        # Also create the PLAN.md file if it doesn't exist
+        os.makedirs(os.path.dirname(d['planDocPath']), exist_ok=True)
+        if not os.path.exists(d['planDocPath']):
+            with open(d['planDocPath'], 'w') as f:
+                f.write(f'# {d.get("title", "Task")}\n')
+conn.commit()
+```
+
+### Goals show "undefined" ID
+
+**Symptom**: `goals_view` shows a goal with `#undefined` instead of a number.
+
+**Root cause**: The goal was inserted with a NULL id column (the `id` field was missing from the JSON data too).
+
+**Fix**:
+
+```python
+import sqlite3, json
+conn = sqlite3.connect('~/.dorabot/dorabot.db')
+# Find the next available ID
+max_id = conn.execute("SELECT MAX(CAST(id AS INTEGER)) FROM goals").fetchone()[0] or 0
+new_id = str(max_id + 1)
+# Fix the row
+row = conn.execute('SELECT data FROM goals WHERE id IS NULL').fetchone()
+d = json.loads(row[0])
+d['id'] = new_id
+conn.execute('DELETE FROM goals WHERE id IS NULL')
+conn.execute('INSERT INTO goals (id, data) VALUES (?, ?)', (new_id, json.dumps(d)))
+conn.commit()
+```
+
 ## Gotchas
 
 - WhatsApp `replyTo` is `string` but Baileys expects `{ key: any }` — don't pass directly
