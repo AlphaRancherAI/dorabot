@@ -863,6 +863,14 @@ export class ClaudeProvider implements Provider {
             stdio: ['pipe', 'pipe', 'pipe'],
             signal: spawnOpts.signal,
           });
+          // Prevent unhandled EPIPE from crashing the gateway if subprocess exits
+          // before the SDK finishes writing to its stdin.
+          proc.stdin!.on('error', (err: NodeJS.ErrnoException) => {
+            if (err.code !== 'EPIPE') console.error(`[claude] subprocess stdin error: ${err.message}`);
+          });
+          proc.on('exit', (code, signal) => {
+            if (code !== 0 && code !== null) console.warn(`[claude] subprocess exited: code=${code} signal=${signal}`);
+          });
           return {
             stdin: proc.stdin!,
             stdout: proc.stdout!,

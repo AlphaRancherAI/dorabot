@@ -93,7 +93,7 @@ export class GatewayManager {
   }
 
   /** Wait for gateway token and gateway Unix socket listener to become available */
-  private async waitForReady(proc: UtilityProcess | ChildProcess, timeoutMs = 20000): Promise<void> {
+  private async waitForReady(proc: UtilityProcess | ChildProcess, timeoutMs = 120000): Promise<void> {
     const tokenPath = GATEWAY_TOKEN_PATH;
     const socketPath = GATEWAY_SOCKET_PATH;
     const startedAt = Date.now();
