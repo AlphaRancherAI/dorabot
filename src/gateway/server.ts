@@ -50,7 +50,7 @@ import { classifyToolCall, cleanToolName, isToolAllowed, type Tier } from './too
 import { AUTONOMOUS_SCHEDULE_ID, buildAutonomousCalendarItem, PULSE_INTERVALS, DEFAULT_PULSE_INTERVAL, pulseIntervalToRrule, rruleToPulseInterval } from '../autonomous.js';
 import { ensureWorktreeForPlan, getWorktreeStats, mergeWorktreeBranch, pushWorktreePr, removeWorktree } from '../worktree/manager.js';
 import {
-  DORABOT_DIR,
+  JARVIS_DIR,
   GATEWAY_SOCKET_PATH,
   GATEWAY_TOKEN_PATH,
   OWNER_CHAT_IDS_PATH,
@@ -284,7 +284,7 @@ export async function startGateway(opts: GatewayOptions): Promise<Gateway> {
 
   // stable gateway auth token — reuse existing, only generate on first run
   const tokenPath = GATEWAY_TOKEN_PATH;
-  mkdirSync(DORABOT_DIR, { recursive: true });
+  mkdirSync(JARVIS_DIR, { recursive: true });
   let gatewayToken: string;
   if (existsSync(tokenPath)) {
     gatewayToken = readFileSync(tokenPath, 'utf-8').trim();
@@ -437,7 +437,7 @@ export async function startGateway(opts: GatewayOptions): Promise<Gateway> {
   const fileWatchers = new Map<string, FileWatchEntry>();
   const watchedPathsByClient = new Map<WebSocket, Set<string>>();
   const FS_WATCH_DEBOUNCE_MS = 250;
-  const DEBUG_FS_WATCH = process.env.DORABOT_DEBUG_FS_WATCH === '1';
+  const DEBUG_FS_WATCH = process.env.JARVIS_DEBUG_FS_WATCH === '1';
 
   const emitFsWatchEvent = (resolved: string) => {
     const entry = fileWatchers.get(resolved);
@@ -2147,9 +2147,9 @@ export async function startGateway(opts: GatewayOptions): Promise<Gateway> {
     const { prompt, images, sessionKey, source, channel, cwd, extraContext, messageMetadata, modelOverride, providerOverride, ollamaBaseUrlOverride } = params;
     console.log(`[gateway] agent run: source=${source} sessionKey=${sessionKey} prompt="${prompt.slice(0, 80)}..."`);
 
-    // pre-run auth check: if dorabot_oauth token is expired, don't waste a run
+    // pre-run auth check: if jarvis_oauth token is expired, don't waste a run
     const authMethod = getActiveAuthMethod();
-    if (authMethod === 'dorabot_oauth' && isOAuthTokenExpired()) {
+    if (authMethod === 'jarvis_oauth' && isOAuthTokenExpired()) {
       console.log(`[gateway] token expired pre-run, triggering re-auth for ${source}`);
       if (!channel) {
         pendingDesktopReauths.set(sessionKey, { prompt, images, sessionKey, source, modelOverride, providerOverride, ollamaBaseUrlOverride });
@@ -2641,17 +2641,17 @@ export async function startGateway(opts: GatewayOptions): Promise<Gateway> {
               if (allTools.some(t => (
                 t?.startsWith('goals_')
                 || t?.startsWith('tasks_')
-                || t?.startsWith('mcp__dorabot-tools__goals_')
-                || t?.startsWith('mcp__dorabot-tools__tasks_')
+                || t?.startsWith('mcp__jarvis-tools__goals_')
+                || t?.startsWith('mcp__jarvis-tools__tasks_')
                 || t?.startsWith('plan_')
                 || t?.startsWith('ideas_')
-                || t?.startsWith('mcp__dorabot-tools__plan_')
-                || t?.startsWith('mcp__dorabot-tools__ideas_')
+                || t?.startsWith('mcp__jarvis-tools__plan_')
+                || t?.startsWith('mcp__jarvis-tools__ideas_')
               ))) {
                 broadcast({ event: 'goals.update', data: {} });
                 macNotify('Dora', 'Goals/tasks updated');
               }
-              if (allTools.some(t => t?.startsWith('research_') || t?.startsWith('mcp__dorabot-tools__research_'))) {
+              if (allTools.some(t => t?.startsWith('research_') || t?.startsWith('mcp__jarvis-tools__research_'))) {
                 broadcast({ event: 'research.update', data: {} });
                 macNotify('Dora', 'Research updated');
               }
@@ -4415,7 +4415,7 @@ export async function startGateway(opts: GatewayOptions): Promise<Gateway> {
         case 'provider.auth.method': {
           return { id, result: {
             method: getActiveAuthMethod(),
-            expired: getActiveAuthMethod() === 'dorabot_oauth' ? isOAuthTokenExpired() : false,
+            expired: getActiveAuthMethod() === 'jarvis_oauth' ? isOAuthTokenExpired() : false,
           } };
         }
 

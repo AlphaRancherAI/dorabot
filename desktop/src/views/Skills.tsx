@@ -248,7 +248,7 @@ export function SkillsView({ gateway }: Props) {
                   <AlertDialogContent>
                     <AlertDialogHeader>
                       <AlertDialogTitle className="text-sm">delete "{skill.name}"?</AlertDialogTitle>
-                      <AlertDialogDescription className="text-xs">removes from ~/.dorabot/skills/. cannot be undone.</AlertDialogDescription>
+                      <AlertDialogDescription className="text-xs">removes from ~/.jarvis/skills/. cannot be undone.</AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
                       <AlertDialogCancel className="h-7 text-xs">cancel</AlertDialogCancel>
@@ -689,7 +689,7 @@ function SkillCard({ skill, onClick, onEdit, onDelete }: {
               <AlertDialogContent>
                 <AlertDialogHeader>
                   <AlertDialogTitle className="text-sm">delete "{skill.name}"?</AlertDialogTitle>
-                  <AlertDialogDescription className="text-xs">removes from ~/.dorabot/skills/. cannot be undone.</AlertDialogDescription>
+                  <AlertDialogDescription className="text-xs">removes from ~/.jarvis/skills/. cannot be undone.</AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
                   <AlertDialogCancel className="h-7 text-xs">cancel</AlertDialogCancel>

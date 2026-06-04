@@ -1,6 +1,6 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { tool } from '@anthropic-ai/claude-agent-sdk';
+import { tool } from './mcp-compat.js';
 import { z } from 'zod';
 import { getDb } from '../db.js';
 import { PLANS_DIR } from '../workspace.js';

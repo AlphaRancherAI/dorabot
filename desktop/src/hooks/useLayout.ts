@@ -16,7 +16,7 @@ export type LayoutState = {
 };
 
 const ALL_GROUP_IDS: GroupId[] = ['g0', 'g1', 'g2', 'g3'];
-const LAYOUT_STORAGE_KEY = 'dorabot:layout';
+const LAYOUT_STORAGE_KEY = 'jarvis:layout';
 
 function makeEmptyGroups(): EditorGroup[] {
   return ALL_GROUP_IDS.map(id => ({ id, tabIds: [], activeTabId: null }));

@@ -18,7 +18,7 @@ Installs to `/Applications/Google Chrome Canary.app`.
 
 ### Configure
 
-In `~/.dorabot2/config.json`:
+In `~/.jarvis2/config.json`:
 
 ```json
 {
@@ -36,7 +36,7 @@ In `~/.dorabot2/config.json`:
 1. `startGateway()` in `src/gateway/server.ts` calls `setBrowserConfig(config.browser)` to pass the config to the browser tool module.
 2. The browser tool calls `findChromium(config.executablePath)` which matches the Canary path against `BROWSER_INFO` in `src/browser/manager.ts`.
 3. This returns `appName: 'Google Chrome Canary'`, so `quitApp()` only targets Canary (not regular Chrome).
-4. Canary uses its own profile at `~/.dorabot2/browser/profile` (not the user's Canary profile).
+4. Canary uses its own profile at `~/.jarvis2/browser/profile` (not the user's Canary profile).
 
 ### Bug that was fixed
 

@@ -82,13 +82,13 @@ export function Hero() {
         <div className="text-center">
           <div className="mb-6 flex justify-center">
             <img
-              src="/dorabot.png"
+              src="/jarvis.png"
               alt="Jarvis"
               width={67}
               height={91}
               decoding="async"
               fetchPriority="high"
-              className="h-28 w-auto dorabot-alive sm:h-32"
+              className="h-28 w-auto jarvis-alive sm:h-32"
               style={{ imageRendering: "pixelated" }}
             />
           </div>
@@ -151,7 +151,7 @@ export function Hero() {
                 </span>
               </HoverBorderGradient>
             </a>
-            <a href="https://github.com/suitedaces/dorabot" className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-lg border border-border bg-bg-card/50 px-4 text-sm text-text transition-colors hover:text-accent sm:h-auto sm:w-auto sm:border-0 sm:bg-transparent sm:px-0">
+            <a href="https://github.com/AlphaRancherAI/jarvis" className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-lg border border-border bg-bg-card/50 px-4 text-sm text-text transition-colors hover:text-accent sm:h-auto sm:w-auto sm:border-0 sm:bg-transparent sm:px-0">
               <GithubIcon />
               View on GitHub
             </a>

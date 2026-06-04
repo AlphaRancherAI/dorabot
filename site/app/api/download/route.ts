@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server"
 
-const REPO = "suitedaces/dorabot"
-const FALLBACK = "https://github.com/suitedaces/dorabot/releases/latest"
+const REPO = "AlphaRancherAI/jarvis"
+const FALLBACK = "https://github.com/AlphaRancherAI/jarvis/releases/latest"
 
 export async function GET() {
   try {

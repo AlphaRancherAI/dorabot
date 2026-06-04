@@ -2,7 +2,7 @@ import { contextBridge, shell, ipcRenderer } from 'electron';
 
 // Listen for gateway errors from main process (gateway failed to start)
 ipcRenderer.on('gateway-error', (_event, payload: { error: string; logs: string }) => {
-  window.dispatchEvent(new CustomEvent('dorabot:gateway-error', { detail: payload }));
+  window.dispatchEvent(new CustomEvent('jarvis:gateway-error', { detail: payload }));
 });
 
 const electronAPI = {

@@ -1367,12 +1367,12 @@ export function useGateway() {
         setGatewayError(detail as { error: string; logs: string });
       }
     };
-    window.addEventListener('dorabot:gateway-error', onGatewayError);
+    window.addEventListener('jarvis:gateway-error', onGatewayError);
 
     client.connect();
     return () => {
       unsubscribe();
-      window.removeEventListener('dorabot:gateway-error', onGatewayError);
+      window.removeEventListener('jarvis:gateway-error', onGatewayError);
     };
   }, [handleEvent, markSeqIfNew]);
 

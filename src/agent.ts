@@ -178,7 +178,7 @@ export async function runAgent(opts: AgentOptions): Promise<AgentResult> {
   const mcpServer = createAgentMcpServer();
 
   // merge built-in MCP server with user-configured external MCP servers
-  const allMcpServers: Record<string, unknown> = { 'dorabot-tools': mcpServer };
+  const allMcpServers: Record<string, unknown> = { 'jarvis-tools': mcpServer };
   if (config.mcpServers) {
     for (const [name, entry] of Object.entries(config.mcpServers)) {
       allMcpServers[name] = entry;
@@ -356,7 +356,7 @@ export async function* streamAgent(opts: AgentOptions): AsyncGenerator<unknown, 
   const mcpServer = createAgentMcpServer();
 
   // merge built-in MCP server with user-configured external MCP servers
-  const allMcpServers: Record<string, unknown> = { 'dorabot-tools': mcpServer };
+  const allMcpServers: Record<string, unknown> = { 'jarvis-tools': mcpServer };
   if (config.mcpServers) {
     for (const [name, entry] of Object.entries(config.mcpServers)) {
       allMcpServers[name] = entry;

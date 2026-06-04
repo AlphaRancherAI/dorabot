@@ -5,9 +5,9 @@ import { tmpdir } from 'node:os';
 import Database from 'better-sqlite3';
 
 function bootstrapLegacyTables(tempHome: string): void {
-  const dorabotDir = join(tempHome, '.dorabot');
-  mkdirSync(dorabotDir, { recursive: true });
-  const db = new Database(join(dorabotDir, 'dorabot.db'));
+  const jarvisDir = join(tempHome, '.jarvis');
+  mkdirSync(jarvisDir, { recursive: true });
+  const db = new Database(join(jarvisDir, 'jarvis.db'));
   db.exec(`
     CREATE TABLE IF NOT EXISTS board_tasks (id TEXT PRIMARY KEY, data TEXT NOT NULL);
     CREATE TABLE IF NOT EXISTS board_meta (key TEXT PRIMARY KEY, value TEXT);
@@ -16,7 +16,7 @@ function bootstrapLegacyTables(tempHome: string): void {
 }
 
 async function main(): Promise<void> {
-  const tempHome = mkdtempSync(join(tmpdir(), 'dorabot-test-scheduler-'));
+  const tempHome = mkdtempSync(join(tmpdir(), 'jarvis-test-scheduler-'));
   const originalHome = process.env.HOME;
   process.env.HOME = tempHome;
 

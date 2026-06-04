@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useMemo, useCallback, type KeyboardEvent, type ClipboardEvent, type DragEvent } from 'react';
-import { DorabotSprite } from '../components/DorabotSprite';
+import { JarvisSprite } from '../components/JarvisSprite';
 import Markdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import type { useGateway, ChatItem, AskUserQuestion, ImageAttachment, SessionState } from '../hooks/useGateway';
@@ -907,7 +907,7 @@ export function ChatView({ gateway, chatItems, agentStatus, pendingQuestion, ses
               <div className="text-center space-y-2">
                 <div className="relative mx-auto flex items-center justify-center" style={{ width: compact ? 80 : 136, height: compact ? 80 : 136 }}>
                   <div className="absolute rounded-full bg-success/30 blur-xl animate-pulse" style={{ width: compact ? 56 : 96, height: compact ? 56 : 96 }} />
-                  <DorabotSprite size={compact ? 56 : 96} className="relative dorabot-alive" />
+                  <JarvisSprite size={compact ? 56 : 96} className="relative jarvis-alive" />
                 </div>
                 <h1 className={cn('font-semibold text-foreground', compact ? 'text-sm' : 'text-lg')}>{getGreeting()}</h1>
                 <div className="flex items-center justify-center gap-1.5 text-[11px] text-muted-foreground">

@@ -5,7 +5,7 @@ import * as path from 'path';
 import { existsSync, readFileSync, writeFileSync } from 'fs';
 import { GatewayManager } from './gateway-manager';
 import { GatewayBridge } from './gateway-bridge';
-import { DORABOT_DIR, GATEWAY_LOG_PATH } from './dorabot-paths';
+import { JARVIS_DIR, GATEWAY_LOG_PATH } from './jarvis-paths';
 
 function readGatewayLogs(): string {
   try {
@@ -25,11 +25,11 @@ let gatewayManager: GatewayManager | null = null;
 let gatewayBridge: GatewayBridge | null = null;
 let updateCheckInterval: ReturnType<typeof setInterval> | null = null;
 
-// Always root Electron's userData inside DORABOT_DIR so that:
+// Always root Electron's userData inside JARVIS_DIR so that:
 // 1. The single-instance lock lives in the instance's own data dir
 // 2. Electron's MachPort rendezvous server gets a unique name per instance
 //    (avoiding namespace collision when two instances run simultaneously)
-app.setPath('userData', path.join(DORABOT_DIR, 'electron'));
+app.setPath('userData', path.join(JARVIS_DIR, 'electron'));
 
 const gotSingleInstanceLock = app.requestSingleInstanceLock();
 if (!gotSingleInstanceLock) {
@@ -105,8 +105,8 @@ function setupAutoUpdater(): void {
 
 function getIconPath(): string {
   return is.dev
-    ? path.join(__dirname, '../../public/dorabot.png')
-    : path.join(__dirname, '../renderer/dorabot.png');
+    ? path.join(__dirname, '../../public/jarvis.png')
+    : path.join(__dirname, '../renderer/jarvis.png');
 }
 
 function showAppNotification(title: string, body: string): void {
@@ -308,8 +308,8 @@ app.on('ready', async () => {
   createWindow();
   setupAutoUpdater();
 
-  // Persistent UI state stored as a JSON file in DORABOT_DIR (bypasses Chromium LevelDB)
-  const uiStatePath = path.join(DORABOT_DIR, 'ui-state.json');
+  // Persistent UI state stored as a JSON file in JARVIS_DIR (bypasses Chromium LevelDB)
+  const uiStatePath = path.join(JARVIS_DIR, 'ui-state.json');
   ipcMain.on('ui-state:read-sync', (event) => {
     try {
       event.returnValue = existsSync(uiStatePath) ? JSON.parse(readFileSync(uiStatePath, 'utf-8')) : {};

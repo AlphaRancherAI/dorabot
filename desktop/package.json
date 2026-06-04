@@ -1,7 +1,7 @@
 {
-  "name": "dorabot-desktop",
+  "name": "jarvis-desktop",
   "version": "0.2.13",
-  "description": "Desktop control center for dorabot",
+  "description": "Desktop control center for jarvis",
   "main": "out/main/main.js",
   "scripts": {
     "dev": "ELECTRON_RUN_AS_NODE= electron-vite dev",

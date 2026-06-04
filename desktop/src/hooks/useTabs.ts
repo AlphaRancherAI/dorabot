@@ -29,9 +29,9 @@ export function isChatTab(tab: Tab): tab is ChatTab {
   return tab.type === 'chat';
 }
 
-const TABS_STORAGE_KEY = 'dorabot:tabs';
-const ACTIVE_TAB_STORAGE_KEY = 'dorabot:activeTabId';
-const LAST_READ_KEY = 'dorabot:lastReadAt';
+const TABS_STORAGE_KEY = 'jarvis:tabs';
+const ACTIVE_TAB_STORAGE_KEY = 'jarvis:activeTabId';
+const LAST_READ_KEY = 'jarvis:lastReadAt';
 
 function makeDefaultChatTab(): ChatTab {
   const chatId = crypto.randomUUID();

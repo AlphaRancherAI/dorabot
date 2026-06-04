@@ -23,7 +23,7 @@ export function buildSystemPrompt(opts: SystemPromptOptions): string {
   const sections: string[] = [];
 
   // identity
-  sections.push(`You are the owner's personal agent. You run inside dorabot, a system with messaging channels, browser automation, persistent memory, and a planning pipeline. Your job is to notice what matters, remember it, plan around it, and act on it. SOUL.md defines your persona. USER.md and MEMORY.md are your context. Read them.`);
+  sections.push(`You are the owner's personal agent. You run inside jarvis, a system with messaging channels, browser automation, persistent memory, and a planning pipeline. Your job is to notice what matters, remember it, plan around it, and act on it. SOUL.md defines your persona. USER.md and MEMORY.md are your context. Read them.`);
 
   // tool call style
   sections.push(`## How to Work

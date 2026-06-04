@@ -12,7 +12,7 @@ type Props = {
   onSetupChat?: (prompt: string) => void;
 };
 
-const WORKSPACE_DIR = '~/.dorabot/workspace';
+const WORKSPACE_DIR = '~/.jarvis/workspace';
 const MEMORIES_DIR = `${WORKSPACE_DIR}/memories`;
 
 const FILES = [
@@ -36,9 +36,9 @@ type FileEntry = {
 };
 
 const SETUP_PROMPTS: Record<string, string> = {
-  'SOUL.md': 'Help me set up my agent\'s personality. Ask me about the tone, style, and behavior I want, then write it to ~/.dorabot/workspace/SOUL.md',
-  'USER.md': 'Help me create my user profile. Ask me about myself — my name, what I do, my preferences — then write it to ~/.dorabot/workspace/USER.md',
-  'MEMORY.md': 'Help me seed my agent\'s memory with key facts. Ask me what I want the agent to always remember, then write it to ~/.dorabot/workspace/MEMORY.md',
+  'SOUL.md': 'Help me set up my agent\'s personality. Ask me about the tone, style, and behavior I want, then write it to ~/.jarvis/workspace/SOUL.md',
+  'USER.md': 'Help me create my user profile. Ask me about myself — my name, what I do, my preferences — then write it to ~/.jarvis/workspace/USER.md',
+  'MEMORY.md': 'Help me seed my agent\'s memory with key facts. Ask me what I want the agent to always remember, then write it to ~/.jarvis/workspace/MEMORY.md',
 };
 
 export function SoulView({ gateway, onSetupChat }: Props) {
@@ -153,7 +153,7 @@ export function SoulView({ gateway, onSetupChat }: Props) {
       <div className="flex items-center gap-2 px-4 py-2.5 border-b border-border shrink-0">
         <Sparkles className="w-4 h-4 text-primary" />
         <span className="font-semibold text-sm">Soul</span>
-        <span className="text-[10px] text-muted-foreground ml-1">~/.dorabot/workspace/</span>
+        <span className="text-[10px] text-muted-foreground ml-1">~/.jarvis/workspace/</span>
       </div>
 
       {/* file tabs */}

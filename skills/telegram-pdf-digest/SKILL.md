@@ -22,13 +22,13 @@ Default scope when in doubt: **last 30 days**, `len(msg) > 400` threshold (subst
 ## System Knowledge (Pre-verified, No Lookups Needed)
 
 ### Database
-- **dorabot DB**: `/Users/Kevin/.dorabot4/dorabot.db` (SQLite)
+- **jarvis DB**: `/Users/Kevin/.jarvis4/jarvis.db` (SQLite)
 - **Messages table schema**: `id, session_id, type, content (JSON), metadata, timestamp`
 - **Telegram session IDs** (as of May 2026):
   - `telegram-dm-8616433691-1778516452142` (George Hamilton, primary)
   - `telegram-dm-8565735343-1778516224425` (George, alt ID "A R" / "OpenClaw Bot")
   - `telegram-dm-8565735343-1778556476814` (George, additional session)
-- Messages sent to George are **tool_use blocks** with `name = "mcp__dorabot-tools__message"`, `action = "send"`, `channel = "telegram"` — the actual text is in `input.message`
+- Messages sent to George are **tool_use blocks** with `name = "mcp__jarvis-tools__message"`, `action = "send"`, `channel = "telegram"` — the actual text is in `input.message`
 
 ### PDF Toolchain (Pre-installed)
 - **pandoc**: `/opt/homebrew/bin/pandoc` — converts Markdown → HTML5
@@ -45,7 +45,7 @@ import sqlite3, json
 from datetime import datetime
 from collections import defaultdict
 
-conn = sqlite3.connect("/Users/Kevin/.dorabot4/dorabot.db")
+conn = sqlite3.connect("/Users/Kevin/.jarvis4/jarvis.db")
 rows = conn.execute("""
     SELECT timestamp, content FROM messages
     WHERE session_id LIKE '%telegram%' AND type = 'assistant'
@@ -57,7 +57,7 @@ for ts, raw in rows:
     try:
         data = json.loads(raw)
         for block in data.get("message", {}).get("content", []):
-            if block.get("type") == "tool_use" and block.get("name") == "mcp__dorabot-tools__message":
+            if block.get("type") == "tool_use" and block.get("name") == "mcp__jarvis-tools__message":
                 inp = block.get("input", {})
                 if inp.get("action") == "send" and inp.get("channel") == "telegram":
                     msg = inp.get("message", "").strip()

@@ -1,9 +1,9 @@
 #!/bin/bash
-# Launch the Dorabot desktop app.
+# Launch the Jarvis desktop app.
 #
 # Usage:
-#   ./launch.sh                         # default ~/.dorabot
-#   DORABOT_HOME=~/.dorabot2 ./launch.sh
+#   ./launch.sh                         # default ~/.jarvis
+#   JARVIS_HOME=~/.jarvis2 ./launch.sh
 
 set -e
 

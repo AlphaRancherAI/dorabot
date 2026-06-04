@@ -40,7 +40,7 @@ export const metadata: Metadata = {
   },
   icons: {
     icon: "/favicon.png",
-    apple: "/dorabot.png",
+    apple: "/jarvis.png",
   },
   keywords: [
     "AI agent",

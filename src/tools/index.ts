@@ -1,4 +1,4 @@
-import { createSdkMcpServer } from '@anthropic-ai/claude-agent-sdk';
+import { createSdkMcpServer } from './mcp-compat.js';
 import { messageTool } from './messaging.js';
 import { calendarTools } from './calendar.js';
 import { screenshotTool } from './screenshot.js';
@@ -43,7 +43,7 @@ const customTools = [
 
 export function createAgentMcpServer() {
   return createSdkMcpServer({
-    name: 'dorabot-tools',
+    name: 'jarvis-tools',
     version: '1.0.0',
     tools: customTools,
   });

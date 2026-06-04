@@ -33,7 +33,7 @@ export async function createWaSocket(opts: CreateSocketOptions): Promise<WASocke
       creds: state.creds,
       keys: makeCacheableSignalKeyStore(state.keys),
     },
-    browser: Browsers.macOS('dorabot'),
+    browser: Browsers.macOS('jarvis'),
     printQRInTerminal: !opts.onQr,
     markOnlineOnConnect: false,
     getMessage: async () => undefined,

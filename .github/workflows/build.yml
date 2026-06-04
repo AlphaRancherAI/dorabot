@@ -63,11 +63,11 @@ jobs:
       - name: Upload DMG
         uses: actions/upload-artifact@v4
         with:
-          name: dorabot-dmg
+          name: jarvis-dmg
           path: desktop/release/*.dmg
 
       - name: Upload ZIP
         uses: actions/upload-artifact@v4
         with:
-          name: dorabot-zip
+          name: jarvis-zip
           path: desktop/release/*.zip

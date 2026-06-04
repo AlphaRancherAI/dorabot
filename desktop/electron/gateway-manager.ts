@@ -4,7 +4,7 @@ import { execSync, spawn, ChildProcess } from 'child_process';
 import { join } from 'path';
 import { createConnection } from 'net';
 import { is } from '@electron-toolkit/utils';
-import { DORABOT_DIR, DORABOT_LOGS_DIR, GATEWAY_LOG_PATH, GATEWAY_SOCKET_PATH, GATEWAY_TOKEN_PATH } from './dorabot-paths';
+import { JARVIS_DIR, JARVIS_LOGS_DIR, GATEWAY_LOG_PATH, GATEWAY_SOCKET_PATH, GATEWAY_TOKEN_PATH } from './jarvis-paths';
 
 // macOS Electron apps launched from Finder/Dock get a minimal PATH (/usr/bin:/bin:/usr/sbin:/sbin)
 // which doesn't include node, homebrew, nvm, etc. Resolve the real PATH from a login shell.
@@ -52,7 +52,7 @@ export class GatewayManager {
   }
 
   private getNodePath(): string {
-    const explicitNode = process.env.DORABOT_NODE_PATH;
+    const explicitNode = process.env.JARVIS_NODE_PATH;
     if (explicitNode && existsSync(explicitNode)) {
       return explicitNode;
     }
@@ -69,10 +69,10 @@ export class GatewayManager {
     }
   }
 
-  /** Ensure ~/.dorabot directory structure exists */
+  /** Ensure ~/.jarvis directory structure exists */
   private ensureDataDir(): void {
-    if (!existsSync(DORABOT_DIR)) mkdirSync(DORABOT_DIR, { recursive: true });
-    if (!existsSync(DORABOT_LOGS_DIR)) mkdirSync(DORABOT_LOGS_DIR, { recursive: true });
+    if (!existsSync(JARVIS_DIR)) mkdirSync(JARVIS_DIR, { recursive: true });
+    if (!existsSync(JARVIS_LOGS_DIR)) mkdirSync(JARVIS_LOGS_DIR, { recursive: true });
   }
 
   private isGatewayListening(socketPath: string, timeoutMs = 500): Promise<boolean> {
@@ -145,7 +145,7 @@ export class GatewayManager {
           env: {
             ...process.env,
             PATH: getShellPath(),
-            DORABOT_ELECTRON: '1',
+            JARVIS_ELECTRON: '1',
             NO_COLOR: '1',
           },
           stdio: ['ignore', 'pipe', 'pipe'],
@@ -156,7 +156,7 @@ export class GatewayManager {
           env: {
             ...process.env,
             PATH: getShellPath(),
-            DORABOT_ELECTRON: '1',
+            JARVIS_ELECTRON: '1',
             NO_COLOR: '1',
           },
           stdio: 'pipe',

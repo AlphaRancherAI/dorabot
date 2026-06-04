@@ -2,7 +2,7 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-# dorabot
+# jarvis
 
 Personal AI agent with multi-channel messaging, browser automation, and persistent memory.
 
@@ -19,13 +19,13 @@ For SDK/API questions, check official SDK documentation and API docs via claude-
 ## Architecture
 
 - **Backend**: Node.js + TypeScript, Claude Agent SDK (`@anthropic-ai/claude-agent-sdk`)
-- **Gateway**: WebSocket RPC server over Unix socket `~/.dorabot/gateway.sock` (`src/gateway/server.ts`)
+- **Gateway**: WebSocket RPC server over Unix socket `~/.jarvis/gateway.sock` (`src/gateway/server.ts`)
 - **Desktop**: Electron + Vite + React in `desktop/`
 - **Channels**: WhatsApp (Baileys), Telegram (grammy)
-- **Database**: SQLite (`~/.dorabot/dorabot.db`) via better-sqlite3, WAL mode
+- **Database**: SQLite (`~/.jarvis/jarvis.db`) via better-sqlite3, WAL mode
 - **Tools**: MCP server — `message`, `browser`, `screenshot`, `calendar` (4 tools), `goals` (4 tools)
-- **Browser**: Playwright-core via CDP, persistent profile at `~/.dorabot/browser/profile/`, port 19222
-- **Skills**: Markdown files in `./skills/` and `~/.dorabot/skills/`, YAML frontmatter for metadata
+- **Browser**: Playwright-core via CDP, persistent profile at `~/.jarvis/browser/profile/`, port 19222
+- **Skills**: Markdown files in `./skills/` and `~/.jarvis/skills/`, YAML frontmatter for metadata
 - **Providers**: Pluggable — Claude (Agent SDK, default) or OpenAI Codex (Codex SDK)
 - **Calendar**: RFC 5545 iCal RRULE-based scheduling (replaced cron)
 
@@ -42,7 +42,7 @@ cd desktop && npm run build          # → desktop/out/{main,preload,renderer}
 
 # dev (kills existing :18789/:5173, builds, watches tsc, launches desktop with HMR)
 npm run dev                          # full stack: backend watch + desktop HMR
-npm run dev:gateway                  # gateway only with tsx --watch, logs to ~/.dorabot/logs/
+npm run dev:gateway                  # gateway only with tsx --watch, logs to ~/.jarvis/logs/
 npm run dev:desktop                  # desktop only with HMR (electron-vite dev)
 npm run dev:cli                      # interactive CLI mode (no gateway)
 
@@ -71,7 +71,7 @@ npm run test:scheduler-run           # test calendar scheduler execution
 - `src/db.ts` — SQLite database singleton (`getDb()`), schema creation, WAL mode, foreign keys
 - `src/system-prompt.ts` — dynamic system prompt builder
 - `src/config.ts` — config loading, merging, path allowlisting via `isPathAllowed()`
-- `src/workspace.ts` — loads SOUL.md, USER.md, AGENTS.md, MEMORY.md from `~/.dorabot/workspace/`
+- `src/workspace.ts` — loads SOUL.md, USER.md, AGENTS.md, MEMORY.md from `~/.jarvis/workspace/`
 - `src/index.ts` — CLI entry point
 
 ### Gateway
@@ -130,7 +130,7 @@ response: { result?: any, error?: string, id: string }
 event:    { event: string, data: any }
 ```
 
-Auth: token from `~/.dorabot/gateway-token` (hex, 64 chars), sent via `{method: 'auth', params: {token}}`.
+Auth: token from `~/.jarvis/gateway-token` (hex, 64 chars), sent via `{method: 'auth', params: {token}}`.
 
 ## Data Flow
 
@@ -150,7 +150,7 @@ Channel messages wrapped in `<incoming_message>` tags. Desktop auto-sends respon
 
 ## Workspace
 
-`~/.dorabot/workspace/` — user-editable files loaded into system prompt each session:
+`~/.jarvis/workspace/` — user-editable files loaded into system prompt each session:
 
 | File | Purpose |
 |------|---------|
@@ -165,13 +165,13 @@ YAML frontmatter is stripped before injection. `ensureWorkspace()` creates defau
 
 SKILL.md format with YAML frontmatter (`name`, `description`, `user-invocable`, `metadata.requires`).
 
-Loaded from `config.skills.dirs` (default: `./skills/`, `~/.dorabot/skills/`). Matched to prompts via name or description keywords. Skill content prepended to user prompt when matched.
+Loaded from `config.skills.dirs` (default: `./skills/`, `~/.jarvis/skills/`). Matched to prompts via name or description keywords. Skill content prepended to user prompt when matched.
 
 Eligibility checks: required binaries (`which`), env vars, config keys.
 
 ## Config
 
-Loaded from (first found): explicit path → `./dorabot.config.json` → `~/.dorabot/config.json` → defaults.
+Loaded from (first found): explicit path → `./jarvis.config.json` → `~/.jarvis.config.json` → defaults.
 
 Key settings:
 - `model` — default `claude-sonnet-4-5-20250929`
@@ -180,7 +180,7 @@ Key settings:
 - `sandbox.mode` — off | non-main | all
 - `security.approvalMode` — approve-sensitive | autonomous | lockdown
 
-Path access: `isPathAllowed()` checks ALWAYS_DENIED list first (`~/.ssh`, `~/.gnupg`, `~/.aws`, `~/.dorabot/whatsapp/auth`, `~/.dorabot/gateway-token`), then allowed list (default: `~/`, `/tmp`). Channel-specific overrides supported.
+Path access: `isPathAllowed()` checks ALWAYS_DENIED list first (`~/.ssh`, `~/.gnupg`, `~/.aws`, `~/.jarvis/whatsapp/auth`, `~/.jarvis/gateway-token`), then allowed list (default: `~/`, `/tmp`). Channel-specific overrides supported.
 
 ## Patterns
 
@@ -199,13 +199,13 @@ Path access: `isPathAllowed()` checks ALWAYS_DENIED list first (`~/.ssh`, `~/.gn
 
 **Symptom**: The chat UI shows "N PENDING" with task_start approvals that won't dismiss when clicking "allow all" or individual checkmarks. Refreshing (Cmd+R) or closing/reopening the tab doesn't help.
 
-**Root cause**: Tasks were created by writing directly to the `tasks` table in `dorabot.db` instead of through the normal agent flow. The gateway's in-memory `pendingApprovals` Map (in `src/gateway/server.ts`) never had these requestIds, so the `tool.approve` RPC returns "no pending approval with that ID" silently. On refresh, `sessionSnapshots` replays `agent.tool_approval` events from `stream_events`, re-adding them to the UI.
+**Root cause**: Tasks were created by writing directly to the `tasks` table in `jarvis.db` instead of through the normal agent flow. The gateway's in-memory `pendingApprovals` Map (in `src/gateway/server.ts`) never had these requestIds, so the `tool.approve` RPC returns "no pending approval with that ID" silently. On refresh, `sessionSnapshots` replays `agent.tool_approval` events from `stream_events`, re-adding them to the UI.
 
 **Fix**: Delete the orphaned `agent.tool_approval` events from `stream_events`:
 
 ```python
 import sqlite3
-conn = sqlite3.connect('~/.dorabot/dorabot.db')
+conn = sqlite3.connect('~/.jarvis/jarvis.db')
 conn.execute("""
     DELETE FROM stream_events
     WHERE event_type = 'agent.tool_approval'
@@ -228,11 +228,11 @@ Then Cmd+R to refresh. The session_key format is `desktop:dm:<chat_id>`.
 
 ```python
 import sqlite3, json, os
-conn = sqlite3.connect('~/.dorabot/dorabot.db')
+conn = sqlite3.connect('~/.jarvis/jarvis.db')
 for row in conn.execute('SELECT id, data FROM tasks').fetchall():
     d = json.loads(row[1])
     if 'planDocPath' not in d:
-        plan_path = f'~/.dorabot/plans/tasks/{row[0]}/PLAN.md'
+        plan_path = f'~/.jarvis/plans/tasks/{row[0]}/PLAN.md'
         d['planDocPath'] = os.path.expanduser(plan_path)
         conn.execute('UPDATE tasks SET data = ? WHERE id = ?', (json.dumps(d), row[0]))
         # Also create the PLAN.md file if it doesn't exist
@@ -253,7 +253,7 @@ conn.commit()
 
 ```python
 import sqlite3, json
-conn = sqlite3.connect('~/.dorabot/dorabot.db')
+conn = sqlite3.connect('~/.jarvis/jarvis.db')
 # Find the next available ID
 max_id = conn.execute("SELECT MAX(CAST(id AS INTEGER)) FROM goals").fetchone()[0] or 0
 new_id = str(max_id + 1)

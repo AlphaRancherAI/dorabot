@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
-import { dorabotImg, whatsappImg, telegramImg } from './assets';
+import { jarvisImg, whatsappImg, telegramImg } from './assets';
 import { useGateway, type NotifiableEvent } from './hooks/useGateway';
 import { useTabs, isChatTab } from './hooks/useTabs';
 import type { Tab, TabType } from './hooks/useTabs';
@@ -56,8 +56,8 @@ type UpdateState = {
   message?: string;
 };
 
-const ONBOARDING_COMPLETED_KEY = 'dorabot:onboarding-completed';
-const ONBOARDING_UNAUTH_SNOOZE_UNTIL_KEY = 'dorabot:onboarding-unauth-snooze-until';
+const ONBOARDING_COMPLETED_KEY = 'jarvis:onboarding-completed';
+const ONBOARDING_UNAUTH_SNOOZE_UNTIL_KEY = 'jarvis:onboarding-unauth-snooze-until';
 const ONBOARDING_UNAUTH_SNOOZE_MS = 30 * 24 * 60 * 60 * 1000;
 
 // soft two-tone chime via web audio api
@@ -114,7 +114,7 @@ export default function App() {
   const [sessionSearchResults, setSessionSearchResults] = useState<string[] | null>(null);
   const [sessionOrder, setSessionOrder] = useState<string[]>(() => {
     try {
-      const raw = localStorage.getItem('dorabot:sessionOrder');
+      const raw = localStorage.getItem('jarvis:sessionOrder');
       const parsed = raw ? JSON.parse(raw) : [];
       return Array.isArray(parsed) ? parsed.filter((x): x is string => typeof x === 'string') : [];
     } catch {
@@ -122,7 +122,7 @@ export default function App() {
     }
   });
   useEffect(() => {
-    localStorage.setItem('dorabot:sessionOrder', JSON.stringify(sessionOrder));
+    localStorage.setItem('jarvis:sessionOrder', JSON.stringify(sessionOrder));
   }, [sessionOrder]);
 
   type SessionGroup = { id: string; name: string; collapsed: boolean };
@@ -216,7 +216,7 @@ export default function App() {
       return;
     }
     try {
-      const icon = new URL(dorabotImg, window.location.href).toString();
+      const icon = new URL(jarvisImg, window.location.href).toString();
       new Notification('Jarvis', { body, icon });
     } catch {}
   }, []);
@@ -289,7 +289,7 @@ export default function App() {
 
   useEffect(() => {
     const fetchStars = () => {
-      fetch('https://api.github.com/repos/suitedaces/dorabot')
+      fetch('https://api.github.com/repos/AlphaRancherAI/jarvis')
         .then(r => r.json())
         .then(data => { if (typeof data.stargazers_count === 'number') setStarCount(data.stargazers_count); })
         .catch(() => {});
@@ -1011,10 +1011,10 @@ export default function App() {
 
       {/* titlebar — pure drag chrome */}
       <div className="h-11 bg-card glass border-b border-border flex items-center pl-[78px] pr-4 shrink-0" style={{ WebkitAppRegion: 'drag' } as any}>
-        <img src={dorabotImg} alt="Jarvis" className="h-8 mr-1 dorabot-alive" style={{ imageRendering: 'pixelated' }} />
+        <img src={jarvisImg} alt="Jarvis" className="h-8 mr-1 jarvis-alive" style={{ imageRendering: 'pixelated' }} />
         <span className="text-base text-muted-foreground font-medium">Jarvis</span>
         <a
-          href="https://github.com/suitedaces/dorabot"
+          href="https://github.com/AlphaRancherAI/jarvis"
           target="_blank"
           rel="noopener noreferrer"
           className="ml-auto flex items-center gap-1.5 text-[11px] text-muted-foreground hover:text-foreground transition-colors"

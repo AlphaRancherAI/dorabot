@@ -263,7 +263,7 @@ export function generateIcsString(items: CalendarItem[]): string {
   const lines = [
     'BEGIN:VCALENDAR',
     'VERSION:2.0',
-    'PRODID:-//dorabot//scheduler//EN',
+    'PRODID:-//jarvis//scheduler//EN',
     'CALSCALE:GREGORIAN',
     'METHOD:PUBLISH',
     'X-WR-CALNAME:Jarvis Schedule',

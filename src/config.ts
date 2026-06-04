@@ -2,7 +2,7 @@ import { readFileSync, existsSync, mkdirSync, writeFileSync, realpathSync } from
 import { homedir } from 'node:os';
 import { join, dirname, resolve } from 'node:path';
 import {
-  DORABOT_CONFIG_PATH,
+  JARVIS_CONFIG_PATH,
   GATEWAY_SOCKET_PATH,
   GATEWAY_TOKEN_PATH,
   LEGACY_CODEX_AUTH_PATH,
@@ -202,14 +202,14 @@ const DEFAULT_CONFIG: Config = {
     autoAllowBashIfSandboxed: false,
   },
   sessionDir: SESSIONS_DIR,
-  cwd: process.env.DORABOT_ELECTRON ? join(homedir(), 'Desktop') : process.cwd(),
+  cwd: process.env.JARVIS_ELECTRON ? join(homedir(), 'Desktop') : process.cwd(),
 };
 
 export async function loadConfig(configPath?: string): Promise<Config> {
   const paths = [
     configPath,
-    join(process.cwd(), 'dorabot.config.json'),
-    DORABOT_CONFIG_PATH,
+    join(process.cwd(), 'jarvis.config.json'),
+    JARVIS_CONFIG_PATH,
   ].filter(Boolean) as string[];
 
   for (const p of paths) {
@@ -256,7 +256,7 @@ export function getConfigValue<K extends keyof Config>(config: Config, key: K): 
 }
 
 export function getConfigPath(): string {
-  return loadedConfigPath || DORABOT_CONFIG_PATH;
+  return loadedConfigPath || JARVIS_CONFIG_PATH;
 }
 
 export function saveConfig(config: Config): void {

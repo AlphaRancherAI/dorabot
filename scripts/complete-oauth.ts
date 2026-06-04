@@ -4,8 +4,8 @@ import { homedir } from 'node:os';
 import { join } from 'node:path';
 import { WebSocket } from 'ws';
 
-const TOKEN_FILE = join(homedir(), '.dorabot', 'gateway-token');
-const SOCKET_FILE = join(homedir(), '.dorabot', 'gateway.sock');
+const TOKEN_FILE = join(homedir(), '.jarvis', 'gateway-token');
+const SOCKET_FILE = join(homedir(), '.jarvis', 'gateway.sock');
 const token = readFileSync(TOKEN_FILE, 'utf-8').trim();
 
 const ws = new WebSocket('ws://localhost', {

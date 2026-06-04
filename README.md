@@ -1,18 +1,18 @@
 <div align="center">
-  <img src="desktop/public/sprites/dorabot.png" width="120" style="image-rendering: pixelated;" />
+  <img src="desktop/public/sprites/jarvis.png" width="120" style="image-rendering: pixelated;" />
 
-  # dorabot
+  # jarvis
 
   **A 24/7 self-learning AI agent with a workspace that runs itself.**
 
-  [![GitHub stars](https://img.shields.io/github/stars/suitedaces/dorabot)](https://github.com/suitedaces/dorabot)
-  [![GitHub release](https://img.shields.io/github/v/release/suitedaces/dorabot)](https://github.com/suitedaces/dorabot/releases/latest)
+  [![GitHub stars](https://img.shields.io/github/stars/AlphaRancherAI/jarvis)](https://github.com/AlphaRancherAI/jarvis)
+  [![GitHub release](https://img.shields.io/github/v/release/AlphaRancherAI/jarvis)](https://github.com/AlphaRancherAI/jarvis/releases/latest)
   [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-  [![macOS](https://img.shields.io/badge/platform-macOS-lightgrey)](https://github.com/suitedaces/dorabot/releases/latest)
+  [![macOS](https://img.shields.io/badge/platform-macOS-lightgrey)](https://github.com/AlphaRancherAI/jarvis/releases/latest)
 
   Works with your existing Claude Code or OpenAI Codex subscription. No extra API key needed.
 
-  [**Download for macOS**](https://github.com/suitedaces/dorabot/releases/latest) · [Website](https://dora.so) · [Discord](https://discord.gg/FH99jkvMz) · [Demo](https://github.com/suitedaces/dorabot/releases/download/v0.2.3/annotated-demo-telegram.mp4)
+  [**Download for macOS**](https://github.com/AlphaRancherAI/jarvis/releases/latest) · [Website](https://dora.so) · [Discord](https://discord.gg/FH99jkvMz) · [Demo](https://github.com/AlphaRancherAI/jarvis/releases/download/v0.2.3/annotated-demo-telegram.mp4)
 
 </div>
 
@@ -71,22 +71,22 @@ Built-in skills for GitHub, email, macOS, PR review, agent swarms. Browse 56k+ c
 
 ### Download
 
-[**Download the macOS app**](https://github.com/suitedaces/dorabot/releases/latest) -- open the DMG, drag to Applications. Onboarding walks you through setup.
+[**Download the macOS app**](https://github.com/AlphaRancherAI/jarvis/releases/latest) -- open the DMG, drag to Applications. Onboarding walks you through setup.
 
 **Requires:** macOS + a Claude Code or OpenAI Codex subscription (or any API key: Claude, OpenAI, MiniMax).
 
 ### Build from source
 
 ```bash
-git clone https://github.com/suitedaces/dorabot.git && cd dorabot
+git clone https://github.com/AlphaRancherAI/jarvis.git && cd jarvis
 npm install && npm run build && npm link
 ```
 
 ```bash
 npm run dev           # gateway + desktop with HMR
-dorabot -g            # production gateway mode
-dorabot -i            # interactive terminal
-dorabot -m "message"  # one-off question
+jarvis -g            # production gateway mode
+jarvis -i            # interactive terminal
+jarvis -m "message"  # one-off question
 ```
 
 ### Launch script
@@ -94,30 +94,30 @@ dorabot -m "message"  # one-off question
 `launch.sh` in the repo root handles first-run setup (installs deps, builds backend and desktop) and launches the app:
 
 ```bash
-./launch.sh                          # default ~/.dorabot
-DORABOT_HOME=~/.dorabot2 ./launch.sh # named instance
+./launch.sh                          # default ~/.jarvis
+JARVIS_HOME=~/.jarvis2 ./launch.sh # named instance
 ```
 
 **Create a desktop shortcut (macOS):**
 
 ```bash
-osacompile -o ~/Desktop/Dorabot.app << 'EOF'
-do shell script "/path/to/dorabot/launch.sh > /tmp/dorabot.log 2>&1 &"
+osacompile -o ~/Desktop/Jarvis.app << 'EOF'
+do shell script "/path/to/jarvis/launch.sh > /tmp/jarvis.log 2>&1 &"
 EOF
 ```
 
-Replace `/path/to/dorabot` with your actual repo path (e.g. `/Users/you/workspace/dorabot`).
+Replace `/path/to/jarvis` with your actual repo path (e.g. `/Users/you/workspace/jarvis`).
 
 ## Multiple Instances
 
-Run isolated instances with separate memories, goals, channels, and databases using `DORABOT_HOME`:
+Run isolated instances with separate memories, goals, channels, and databases using `JARVIS_HOME`:
 
 ```bash
 # Second gateway instance
-DORABOT_HOME=~/.dorabot2 dorabot -g
+JARVIS_HOME=~/.jarvis2 jarvis -g
 
 # Second desktop instance (from the desktop/ directory)
-DORABOT_HOME=~/.dorabot2 env -u ELECTRON_RUN_AS_NODE \
+JARVIS_HOME=~/.jarvis2 env -u ELECTRON_RUN_AS_NODE \
   node_modules/electron/dist/Electron.app/Contents/MacOS/Electron .
 ```
 
@@ -133,7 +133,7 @@ The `onboard` skill interviews you and builds:
 | `USER.md` | Who you are, your goals, context |
 | `MEMORY.md` | Facts that persist across sessions |
 
-All files live in `~/.dorabot/workspace/`. Edit directly or let the agent manage them.
+All files live in `~/.jarvis/workspace/`. Edit directly or let the agent manage them.
 
 ## Security
 
@@ -143,7 +143,7 @@ Local-only, no telemetry. Scoped file access (sensitive dirs blocked). Token-aut
 
 <details>
 <summary><strong>Do I need an API key?</strong></summary>
-If you have a Claude Code or OpenAI Codex subscription, you're good to go. Otherwise, any API key works (Claude, OpenAI, MiniMax). dorabot wraps your model, it doesn't include one.
+If you have a Claude Code or OpenAI Codex subscription, you're good to go. Otherwise, any API key works (Claude, OpenAI, MiniMax). jarvis wraps your model, it doesn't include one.
 </details>
 
 <details>
@@ -153,12 +153,12 @@ No. Runs on your Mac. Only network calls are to your AI provider's API.
 
 <details>
 <summary><strong>How is this different from Claude Code / Cursor?</strong></summary>
-Those are coding tools. dorabot is an agent workspace: persistent memory, autonomous goals, scheduling, browser automation, multi-channel messaging. It works while you sleep.
+Those are coding tools. jarvis is an agent workspace: persistent memory, autonomous goals, scheduling, browser automation, multi-channel messaging. It works while you sleep.
 </details>
 
 ## Contributing
 
-Open an issue or PR on [GitHub](https://github.com/suitedaces/dorabot).
+Open an issue or PR on [GitHub](https://github.com/AlphaRancherAI/jarvis).
 
 ## License
 

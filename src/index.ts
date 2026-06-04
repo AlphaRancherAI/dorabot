@@ -224,12 +224,12 @@ async function main(): Promise<void> {
 Jarvis - Claude Agent SDK powered assistant
 
 Usage:
-  dorabot [options] [message]
-  dorabot -i                    # interactive mode
-  dorabot -d                    # daemon mode (scheduler)
-  dorabot -g                    # gateway mode (channels + scheduler)
-  dorabot -m "Hello"            # single message
-  echo "Hello" | dorabot        # pipe input
+  jarvis [options] [message]
+  jarvis -i                    # interactive mode
+  jarvis -d                    # daemon mode (scheduler)
+  jarvis -g                    # gateway mode (channels + scheduler)
+  jarvis -m "Hello"            # single message
+  echo "Hello" | jarvis        # pipe input
 
 Options:
   -m, --message <text>    Message to send

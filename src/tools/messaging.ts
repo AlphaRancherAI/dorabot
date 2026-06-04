@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { tool } from '@anthropic-ai/claude-agent-sdk';
+import { tool } from './mcp-compat.js';
 
 export type ChannelHandler = {
   send(target: string, message: string, opts?: { media?: string; replyTo?: string }): Promise<{ id: string; chatId: string }>;

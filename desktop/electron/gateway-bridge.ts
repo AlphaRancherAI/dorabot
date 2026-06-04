@@ -7,7 +7,7 @@ import WebSocket from 'ws';
 import { createConnection } from 'node:net';
 import { readFileSync, existsSync, appendFileSync } from 'fs';
 import { BrowserWindow } from 'electron';
-import { GATEWAY_TOKEN_PATH, GATEWAY_LOG_PATH, GATEWAY_SOCKET_PATH } from './dorabot-paths';
+import { GATEWAY_TOKEN_PATH, GATEWAY_LOG_PATH, GATEWAY_SOCKET_PATH } from './jarvis-paths';
 
 const HEARTBEAT_INTERVAL_MS = 10_000;
 const HEARTBEAT_TIMEOUT_MS = 5_000;

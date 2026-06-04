@@ -6,7 +6,7 @@ import { randomBytes, createHash } from 'node:crypto';
 import { dirname } from 'node:path';
 import type { Provider, ProviderRunOptions, ProviderMessage, ProviderAuthStatus, ProviderQueryResult, RunHandle } from './types.js';
 import { guardImages } from './image-guard.js';
-import { DORABOT_DIR, CLAUDE_KEY_PATH, CLAUDE_OAUTH_PATH } from '../workspace.js';
+import { JARVIS_DIR, CLAUDE_KEY_PATH, CLAUDE_OAUTH_PATH } from '../workspace.js';
 import { getSecretStorageBackend, keychainDelete, keychainLoad, keychainStore, type SecretStorageBackend } from '../auth/keychain.js';
 
 // ── Claude CLI binary resolution ────────────────────────────────────
@@ -18,7 +18,7 @@ function resolveClaudeBinary(): string {
   if (_claudeBinary) return _claudeBinary;
 
   // 1. Explicit override
-  const override = process.env.DORABOT_CLAUDE_PATH || process.env.CLAUDE_CLI_PATH;
+  const override = process.env.JARVIS_CLAUDE_PATH || process.env.CLAUDE_CLI_PATH;
   if (override && existsSync(override)) {
     _claudeBinary = override;
     console.log(`[claude] claude binary (env): ${_claudeBinary}`);
@@ -102,7 +102,7 @@ function persistKey(apiKey: string): void {
   const storedInKeychain = keychainStore(KEYCHAIN_API_KEY_ACCOUNT, apiKey);
   if (storedInKeychain) return;
   try {
-    mkdirSync(DORABOT_DIR, { recursive: true });
+    mkdirSync(JARVIS_DIR, { recursive: true });
     writeFileSync(KEY_FILE, apiKey, { mode: 0o600 });
     chmodSync(KEY_FILE, 0o600);
   } catch (err) {
@@ -209,7 +209,7 @@ function persistOAuthTokens(tokens: OAuthTokens): void {
     return;
   }
   try {
-    mkdirSync(DORABOT_DIR, { recursive: true });
+    mkdirSync(JARVIS_DIR, { recursive: true });
     writeFileSync(OAUTH_FILE, JSON.stringify(tokens), { mode: 0o600 });
     chmodSync(OAUTH_FILE, 0o600);
     scheduleTokenRefresh(tokens);
@@ -397,21 +397,21 @@ function cliHasOwnAuth(): boolean {
 
 // ── Auth method enum ────────────────────────────────────────────────
 
-export type AuthMethod = 'api_key' | 'cli_keychain' | 'dorabot_oauth' | 'none';
+export type AuthMethod = 'api_key' | 'cli_keychain' | 'jarvis_oauth' | 'none';
 
 /** Determine which auth method will be used (no side effects) */
 export function getActiveAuthMethod(): AuthMethod {
   if (getApiKey()) return 'api_key';
-  // Prefer dorabot's own OAuth tokens when they exist — we manage refresh
+  // Prefer jarvis's own OAuth tokens when they exist — we manage refresh
   // and can guarantee a fresh token for each run. cli_keychain is a fallback
-  // for users who have never set up dorabot OAuth.
+  // for users who have never set up jarvis OAuth.
   const tokens = loadOAuthTokens();
-  if (tokens?.access_token) return 'dorabot_oauth';
+  if (tokens?.access_token) return 'jarvis_oauth';
   if (cliHasOwnAuth()) return 'cli_keychain';
   return 'none';
 }
 
-/** Check if dorabot's OAuth token is expired or expiring soon */
+/** Check if jarvis's OAuth token is expired or expiring soon */
 export function isOAuthTokenExpired(): boolean {
   const tokens = loadOAuthTokens();
   if (!tokens) return true;
@@ -455,7 +455,7 @@ export class ClaudeProvider implements Provider {
     // CLI subprocess prioritizes env var over its own keychain, and the env
     // token can't be refreshed mid-run.
     const method = getActiveAuthMethod();
-    if (method === 'dorabot_oauth') {
+    if (method === 'jarvis_oauth') {
       const tokens = loadOAuthTokens();
       if (tokens?.access_token) {
         process.env.CLAUDE_CODE_OAUTH_TOKEN = tokens.access_token;
@@ -506,7 +506,7 @@ export class ClaudeProvider implements Provider {
           tokenHealth: 'valid',
         };
         return this._cachedAuth;
-      case 'dorabot_oauth': {
+      case 'jarvis_oauth': {
         const token = await ensureOAuthToken();
         const tokens = loadOAuthTokens();
         const tokenState = getClaudeTokenState();
@@ -726,9 +726,9 @@ export class ClaudeProvider implements Provider {
   }
 
   async *query(opts: ProviderRunOptions): AsyncGenerator<ProviderMessage, ProviderQueryResult, unknown> {
-    // refresh env token for dorabot_oauth only (cli_keychain handles its own)
+    // refresh env token for jarvis_oauth only (cli_keychain handles its own)
     const method = getActiveAuthMethod();
-    if (method === 'dorabot_oauth') {
+    if (method === 'jarvis_oauth') {
       const freshToken = await ensureOAuthToken();
       // Update the env snapshot passed from agent.ts — it was captured before
       // ensureOAuthToken() ran, so it may have a stale/missing token.

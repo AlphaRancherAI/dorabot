@@ -72,7 +72,7 @@ async function connectAuthed(socketPath: string, token: string): Promise<{
 }
 
 async function main(): Promise<void> {
-  const tempHome = mkdtempSync(join(tmpdir(), 'dorabot-test-reconnect-'));
+  const tempHome = mkdtempSync(join(tmpdir(), 'jarvis-test-reconnect-'));
   const originalHome = process.env.HOME;
   process.env.HOME = tempHome;
 
@@ -80,9 +80,9 @@ async function main(): Promise<void> {
   const { startGateway } = await import('../src/gateway/server.js');
   const { GATEWAY_TOKEN_PATH, GATEWAY_SOCKET_PATH } = await import('../src/workspace.js');
 
-  const dorabotDir = join(tempHome, '.dorabot');
-  mkdirSync(dorabotDir, { recursive: true });
-  const bootstrapDb = new Database(join(dorabotDir, 'dorabot.db'));
+  const jarvisDir = join(tempHome, '.jarvis');
+  mkdirSync(jarvisDir, { recursive: true });
+  const bootstrapDb = new Database(join(jarvisDir, 'jarvis.db'));
   bootstrapDb.exec(`
     CREATE TABLE IF NOT EXISTS board_tasks (id TEXT PRIMARY KEY, data TEXT NOT NULL);
     CREATE TABLE IF NOT EXISTS board_meta (key TEXT PRIMARY KEY, value TEXT);

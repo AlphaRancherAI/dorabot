@@ -7,7 +7,7 @@ import { join } from 'node:path';
 import { WebSocket } from 'ws';
 import qrcode from 'qrcode-terminal';
 
-const TOKEN_FILE = join(homedir(), '.dorabot', 'gateway-token');
+const TOKEN_FILE = join(homedir(), '.jarvis', 'gateway-token');
 const token = readFileSync(TOKEN_FILE, 'utf-8').trim();
 
 const ws = new WebSocket('wss://127.0.0.1:18789', {

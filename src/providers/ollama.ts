@@ -67,7 +67,7 @@ export class OllamaProvider implements Provider {
     let mcpClient: McpClient | null = null;
     let ollamaTools: OllamaTool[] = [];
 
-    const internalServer = (opts.mcpServer as Record<string, unknown> | undefined)?.['dorabot-tools'] as
+    const internalServer = (opts.mcpServer as Record<string, unknown> | undefined)?.['jarvis-tools'] as
       | { connect(t: unknown): Promise<void> }
       | undefined;
 

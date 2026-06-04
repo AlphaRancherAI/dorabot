@@ -1,11 +1,11 @@
-appId: com.dorabot.desktop
+appId: com.jarvis.desktop
 productName: Jarvis
 copyright: Copyright 2026 Ishan Nagpal
 
 publish:
   provider: github
   owner: suitedaces
-  repo: dorabot
+  repo: jarvis
 
 directories:
   output: release

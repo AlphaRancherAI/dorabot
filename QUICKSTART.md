@@ -5,19 +5,19 @@
 All instances use the Electron binary directly from `desktop/node_modules/`. Run from the `desktop/` directory. After any frontend code change, run `npm run build` once first.
 
 ```bash
-cd ~/workspace/dorabot/desktop
+cd ~/workspace/jarvis/desktop
 
-# Instance 1 (default ~/.dorabot)
+# Instance 1 (default ~/.jarvis)
 ELECTRON_RUN_AS_NODE= node_modules/electron/dist/Electron.app/Contents/MacOS/Electron .
 
 # Instance 2
-ELECTRON_RUN_AS_NODE= DORABOT_HOME=~/.dorabot2 node_modules/electron/dist/Electron.app/Contents/MacOS/Electron .
+ELECTRON_RUN_AS_NODE= JARVIS_HOME=~/.jarvis2 node_modules/electron/dist/Electron.app/Contents/MacOS/Electron .
 
 # Instance 3
-ELECTRON_RUN_AS_NODE= DORABOT_HOME=~/.dorabot3 node_modules/electron/dist/Electron.app/Contents/MacOS/Electron .
+ELECTRON_RUN_AS_NODE= JARVIS_HOME=~/.jarvis3 node_modules/electron/dist/Electron.app/Contents/MacOS/Electron .
 
 # Instance 4
-ELECTRON_RUN_AS_NODE= DORABOT_HOME=~/.dorabot4 node_modules/electron/dist/Electron.app/Contents/MacOS/Electron .
+ELECTRON_RUN_AS_NODE= JARVIS_HOME=~/.jarvis4 node_modules/electron/dist/Electron.app/Contents/MacOS/Electron .
 ```
 
 `ELECTRON_RUN_AS_NODE=` (empty) is required — Claude Code sets this var in its shell env and it breaks Electron if inherited.
@@ -40,4 +40,4 @@ cd desktop && npm run package
 
 ## Auth
 
-Claude OAuth tokens are stored in the macOS keychain via the `dorabot_oauth` method. Each instance shares the same keychain entry (same Claude account). To use a different account per instance, use an API key instead via Settings.
+Claude OAuth tokens are stored in the macOS keychain via the `jarvis_oauth` method. Each instance shares the same keychain entry (same Claude account). To use a different account per instance, use an API key instead via Settings.

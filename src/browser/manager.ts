@@ -115,7 +115,7 @@ export async function launchBrowser(config: BrowserConfig = {}): Promise<void> {
     throw new Error('No Chromium-based browser found. Install Chrome, Brave, or Edge, or set browser.executablePath in config.');
   }
 
-  // Use dedicated dorabot profile by default — not the user's personal Chrome profile.
+  // Use dedicated jarvis profile by default — not the user's personal Chrome profile.
   // Users can opt into their real profile via browser.profileDir in config.
   const profileDir = config.profileDir || DEFAULT_PROFILE_DIR;
 

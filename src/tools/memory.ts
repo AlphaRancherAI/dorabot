@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { tool } from '@anthropic-ai/claude-agent-sdk';
+import { tool } from './mcp-compat.js';
 import { getDb, extractMessageText } from '../db.js';
 import { AUTONOMOUS_SCHEDULE_ID } from '../autonomous.js';
 

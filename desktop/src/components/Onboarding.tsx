@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { dorabotComputerImg, dorabotImg, whatsappImg, telegramImg } from '../assets';
+import { jarvisComputerImg, jarvisImg, whatsappImg, telegramImg } from '../assets';
 import type { useGateway } from '../hooks/useGateway';
 import { ProviderSetup } from './ProviderSetup';
 import { FlipWords } from './aceternity/flip-words';
@@ -373,7 +373,7 @@ function WelcomeStep({ onContinue }: { onContinue: () => void }) {
         transition={{ duration: 0.5, ease: 'easeOut' }}
       >
         <div className="absolute inset-0 rounded-full bg-primary/20 blur-2xl animate-pulse" style={{ width: 120, height: 120, margin: '-10px' }} />
-        <img src={dorabotComputerImg} alt="Jarvis" className="relative w-24 h-24 dorabot-alive" />
+        <img src={jarvisComputerImg} alt="Jarvis" className="relative w-24 h-24 jarvis-alive" />
       </motion.div>
 
       <motion.div
@@ -419,7 +419,7 @@ function DetectingStep() {
     <div className="flex flex-col items-center gap-4 py-8">
       <div className="relative w-20 h-20 mx-auto">
         <div className="absolute inset-0 rounded-full bg-success/30 blur-xl animate-pulse" />
-        <img src={dorabotComputerImg} alt="Jarvis" className="relative w-20 h-20 dorabot-alive" />
+        <img src={jarvisComputerImg} alt="Jarvis" className="relative w-20 h-20 jarvis-alive" />
       </div>
       <Loader2 className="w-5 h-5 text-primary animate-spin" />
       <TextGenerateEffect
@@ -465,7 +465,7 @@ function ChooseStep({
       <div className="text-center space-y-3">
         <div className="relative w-20 h-20 mx-auto">
           <div className="absolute inset-0 rounded-full bg-success/30 blur-xl animate-pulse" />
-          <img src={dorabotComputerImg} alt="Jarvis" className="relative w-20 h-20 dorabot-alive" />
+          <img src={jarvisComputerImg} alt="Jarvis" className="relative w-20 h-20 jarvis-alive" />
         </div>
         <div>
           <h1 className="text-base font-semibold text-foreground">Connect your AI</h1>
@@ -1252,7 +1252,7 @@ function LaunchStep({
         transition={{ duration: 0.4, ease: 'easeOut' }}
       >
         <div className="absolute inset-0 rounded-full bg-success/30 blur-2xl animate-pulse" style={{ width: 100, height: 100, margin: '-10px' }} />
-        <img src={dorabotImg} alt="Jarvis" className="relative w-20 h-20 dorabot-alive" />
+        <img src={jarvisImg} alt="Jarvis" className="relative w-20 h-20 jarvis-alive" />
       </motion.div>
 
       <motion.div

@@ -3,33 +3,33 @@ import { join } from 'node:path';
 import { homedir } from 'node:os';
 
 const HOME_DIR = homedir();
-export const DORABOT_DIR = process.env.DORABOT_HOME || join(homedir(), '.dorabot');
-export const WORKSPACE_DIR = join(DORABOT_DIR, 'workspace');
+export const JARVIS_DIR = process.env.JARVIS_HOME || join(homedir(), '.jarvis');
+export const WORKSPACE_DIR = join(JARVIS_DIR, 'workspace');
 export const MEMORIES_DIR = join(WORKSPACE_DIR, 'memories');
-export const RESEARCH_DIR = join(DORABOT_DIR, 'research');
+export const RESEARCH_DIR = join(JARVIS_DIR, 'research');
 export const RESEARCH_SKILL_PATH = join(RESEARCH_DIR, 'SKILL.md');
-export const PLANS_DIR = join(DORABOT_DIR, 'plans');
-export const WORKTREES_DIR = join(DORABOT_DIR, 'worktrees');
-export const DORABOT_DB_PATH = join(DORABOT_DIR, 'dorabot.db');
-export const DORABOT_CONFIG_PATH = join(DORABOT_DIR, 'config.json');
-export const GATEWAY_TOKEN_PATH = join(DORABOT_DIR, 'gateway-token');
-export const OWNER_CHAT_IDS_PATH = join(DORABOT_DIR, 'owner-chat-ids.json');
-export const LOGS_DIR = join(DORABOT_DIR, 'logs');
-export const SESSIONS_DIR = join(DORABOT_DIR, 'sessions');
-export const SKILLS_DIR = join(DORABOT_DIR, 'skills');
-export const TMP_DIR = join(DORABOT_DIR, 'tmp');
-export const GATEWAY_SOCKET_PATH = join(DORABOT_DIR, 'gateway.sock');
-export const TELEGRAM_DIR = join(DORABOT_DIR, 'telegram');
+export const PLANS_DIR = join(JARVIS_DIR, 'plans');
+export const WORKTREES_DIR = join(JARVIS_DIR, 'worktrees');
+export const JARVIS_DB_PATH = join(JARVIS_DIR, 'jarvis.db');
+export const JARVIS_CONFIG_PATH = join(JARVIS_DIR, 'config.json');
+export const GATEWAY_TOKEN_PATH = join(JARVIS_DIR, 'gateway-token');
+export const OWNER_CHAT_IDS_PATH = join(JARVIS_DIR, 'owner-chat-ids.json');
+export const LOGS_DIR = join(JARVIS_DIR, 'logs');
+export const SESSIONS_DIR = join(JARVIS_DIR, 'sessions');
+export const SKILLS_DIR = join(JARVIS_DIR, 'skills');
+export const TMP_DIR = join(JARVIS_DIR, 'tmp');
+export const GATEWAY_SOCKET_PATH = join(JARVIS_DIR, 'gateway.sock');
+export const TELEGRAM_DIR = join(JARVIS_DIR, 'telegram');
 export const TELEGRAM_TOKEN_PATH = join(TELEGRAM_DIR, 'token');
-export const TELEGRAM_MEDIA_DIR = join(DORABOT_DIR, 'media', 'telegram');
-export const BROWSER_PROFILE_DIR = join(DORABOT_DIR, 'browser', 'profile');
-export const WHATSAPP_DIR = join(DORABOT_DIR, 'whatsapp');
+export const TELEGRAM_MEDIA_DIR = join(JARVIS_DIR, 'media', 'telegram');
+export const BROWSER_PROFILE_DIR = join(JARVIS_DIR, 'browser', 'profile');
+export const WHATSAPP_DIR = join(JARVIS_DIR, 'whatsapp');
 export const WHATSAPP_AUTH_DIR = join(WHATSAPP_DIR, 'auth');
-export const CLAUDE_KEY_PATH = join(DORABOT_DIR, '.anthropic-key');
-export const CLAUDE_OAUTH_PATH = join(DORABOT_DIR, '.claude-oauth.json');
-export const CODEX_OAUTH_PATH = join(DORABOT_DIR, '.codex-oauth.json');
-export const OPENAI_KEY_PATH = join(DORABOT_DIR, '.openai-key');
-export const LEGACY_CODEX_AUTH_PATH = join(DORABOT_DIR, 'codex-auth.json');
+export const CLAUDE_KEY_PATH = join(JARVIS_DIR, '.anthropic-key');
+export const CLAUDE_OAUTH_PATH = join(JARVIS_DIR, '.claude-oauth.json');
+export const CODEX_OAUTH_PATH = join(JARVIS_DIR, '.codex-oauth.json');
+export const OPENAI_KEY_PATH = join(JARVIS_DIR, '.openai-key');
+export const LEGACY_CODEX_AUTH_PATH = join(JARVIS_DIR, 'codex-auth.json');
 
 export function toHomeAlias(path: string): string {
   return path.startsWith(`${HOME_DIR}/`)
@@ -97,7 +97,7 @@ export function buildWorkspaceSection(files: WorkspaceFiles): string | null {
 
   if (parts.length === 0) return null;
 
-  return `## Project Context\n\nThese files are loaded from ~/.dorabot/workspace/ and are user-editable.\nIf SOUL.md is present, embody its persona and tone.\n\n${parts.join('\n\n')}`;
+  return `## Project Context\n\nThese files are loaded from ~/.jarvis/workspace/ and are user-editable.\nIf SOUL.md is present, embody its persona and tone.\n\n${parts.join('\n\n')}`;
 }
 
 const DEFAULT_SOUL = `# Soul
@@ -184,7 +184,7 @@ Use these rules whenever you create or update research content.
 
 export function ensureWorkspace(dir?: string): void {
   const wsDir = dir || WORKSPACE_DIR;
-  mkdirSync(DORABOT_DIR, { recursive: true });
+  mkdirSync(JARVIS_DIR, { recursive: true });
   mkdirSync(wsDir, { recursive: true });
   mkdirSync(MEMORIES_DIR, { recursive: true });
   mkdirSync(RESEARCH_DIR, { recursive: true });

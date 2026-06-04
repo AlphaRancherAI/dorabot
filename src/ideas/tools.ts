@@ -1,4 +1,4 @@
-import { tool } from '@anthropic-ai/claude-agent-sdk';
+import { tool } from '../tools/mcp-compat.js';
 import { z } from 'zod';
 import { getDb } from '../db.js';
 import {

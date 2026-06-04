@@ -1,14 +1,14 @@
 import Database from 'better-sqlite3';
 import { mkdirSync } from 'node:fs';
-import { DORABOT_DB_PATH, DORABOT_DIR } from './workspace.js';
+import { JARVIS_DB_PATH, JARVIS_DIR } from './workspace.js';
 
 let db: Database.Database | null = null;
 
 export function getDb(): Database.Database {
   if (db) return db;
 
-  mkdirSync(DORABOT_DIR, { recursive: true });
-  db = new Database(DORABOT_DB_PATH);
+  mkdirSync(JARVIS_DIR, { recursive: true });
+  db = new Database(JARVIS_DB_PATH);
   db.pragma('journal_mode = WAL');
   db.pragma('foreign_keys = ON');
 

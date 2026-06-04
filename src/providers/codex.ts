@@ -9,7 +9,7 @@ import { randomBytes, createHash } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import type { Provider, ProviderRunOptions, ProviderMessage, ProviderAuthStatus, ProviderQueryResult } from './types.js';
 import type { ReasoningEffort } from '../config.js';
-import { DORABOT_DIR, CODEX_OAUTH_PATH, OPENAI_KEY_PATH } from '../workspace.js';
+import { JARVIS_DIR, CODEX_OAUTH_PATH, OPENAI_KEY_PATH } from '../workspace.js';
 import { getSecretStorageBackend, keychainDelete, keychainLoad, keychainStore, type SecretStorageBackend } from '../auth/keychain.js';
 
 // ── OAuth constants (same client as Codex CLI) ──────────────────────
@@ -39,8 +39,8 @@ function ensureCodexHome(): void {
   mkdirSync(codexHome(), { recursive: true });
 }
 
-function ensureDorabotDir(): void {
-  mkdirSync(DORABOT_DIR, { recursive: true });
+function ensureJarvisDir(): void {
+  mkdirSync(JARVIS_DIR, { recursive: true });
 }
 
 /**
@@ -207,7 +207,7 @@ function persistCodexOAuthTokens(tokens: CodexOAuthTokens): void {
     return;
   }
   try {
-    ensureDorabotDir();
+    ensureJarvisDir();
     writeFileSync(CODEX_OAUTH_FILE, JSON.stringify(tokens), { mode: 0o600 });
     chmodSync(CODEX_OAUTH_FILE, 0o600);
     scheduleCodexRefresh(tokens);
@@ -232,7 +232,7 @@ function persistOpenAIKey(apiKey: string): void {
   const savedToKeychain = keychainStore(KEYCHAIN_API_KEY_ACCOUNT, apiKey);
   if (savedToKeychain) return;
   try {
-    ensureDorabotDir();
+    ensureJarvisDir();
     writeFileSync(OPENAI_KEY_FILE, apiKey, { mode: 0o600 });
     chmodSync(OPENAI_KEY_FILE, 0o600);
   } catch (err) {
@@ -539,7 +539,7 @@ export class CodexProvider implements Provider {
     ensureCodexHome();
     try {
       const storageBackend = getSecretStorageBackend();
-      // 1. Managed OAuth tokens (dorabot-managed)
+      // 1. Managed OAuth tokens (jarvis-managed)
       const oauthTokens = loadCodexOAuthTokens();
       if (oauthTokens) {
         const token = await ensureCodexOAuthToken();
@@ -613,7 +613,7 @@ export class CodexProvider implements Provider {
 
   async loginWithApiKey(apiKey: string): Promise<ProviderAuthStatus> {
     ensureCodexHome();
-    // Persist to dorabot-managed file
+    // Persist to jarvis-managed file
     persistOpenAIKey(apiKey);
     reconnectRequired = false;
     // Also try to register with codex CLI

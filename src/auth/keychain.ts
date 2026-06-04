@@ -2,14 +2,14 @@ import { execFileSync } from 'node:child_process';
 import { homedir } from 'node:os';
 import { join, basename } from 'node:path';
 
-// Each DORABOT_HOME instance gets its own keychain namespace so credentials
-// are isolated. The default ~/.dorabot instance keeps 'dorabot' for backwards
-// compatibility; other instances use 'dorabot-<dirname>' (e.g. 'dorabot-dorabot2').
-const _dorDir = process.env.DORABOT_HOME || join(homedir(), '.dorabot');
-const _dorDefault = join(homedir(), '.dorabot');
+// Each JARVIS_HOME instance gets its own keychain namespace so credentials
+// are isolated. The default ~/.jarvis instance keeps 'jarvis' for backwards
+// compatibility; other instances use 'jarvis-<dirname>' (e.g. 'jarvis-jarvis2').
+const _dorDir = process.env.JARVIS_HOME || join(homedir(), '.jarvis');
+const _dorDefault = join(homedir(), '.jarvis');
 const SERVICE_NAME = _dorDir === _dorDefault
-  ? 'dorabot'
-  : `dorabot-${basename(_dorDir).replace(/^\./, '')}`;
+  ? 'jarvis'
+  : `jarvis-${basename(_dorDir).replace(/^\./, '')}`;
 
 export type SecretStorageBackend = 'keychain' | 'file';
 

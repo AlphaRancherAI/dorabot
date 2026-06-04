@@ -27,7 +27,7 @@ export function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false)
 
   useEffect(() => {
-    const saved = localStorage.getItem("dorabot-site-theme")
+    const saved = localStorage.getItem("jarvis-site-theme")
     const initial: "dark" | "light" = saved === "light" ? "light" : "dark"
     setTheme(initial)
     document.documentElement.classList.toggle("dark", initial === "dark")
@@ -37,7 +37,7 @@ export function Navbar() {
     setTheme((prev) => {
       const next = prev === "dark" ? "light" : "dark"
       document.documentElement.classList.toggle("dark", next === "dark")
-      localStorage.setItem("dorabot-site-theme", next)
+      localStorage.setItem("jarvis-site-theme", next)
       return next
     })
   }
@@ -48,12 +48,12 @@ export function Navbar() {
         <div className="flex items-center gap-6">
           <a href="/" className="flex items-center gap-1.5">
             <img
-              src="/dorabot.png"
+              src="/jarvis.png"
               alt="Jarvis"
               width={67}
               height={91}
               decoding="async"
-              className="h-9 w-auto dorabot-alive"
+              className="h-9 w-auto jarvis-alive"
               style={{ imageRendering: "pixelated" }}
             />
             <span className="text-sm font-medium text-text-secondary">Jarvis</span>
@@ -87,7 +87,7 @@ export function Navbar() {
             )}
           </button>
           <a
-            href="https://github.com/suitedaces/dorabot"
+            href="https://github.com/AlphaRancherAI/jarvis"
             className="star-glow hidden sm:inline-flex items-center gap-2 rounded-lg border border-accent/40 bg-bg-card px-4 py-2 text-sm font-medium text-text"
           >
             <GithubIcon />
@@ -116,7 +116,7 @@ export function Navbar() {
           <a href="#features" onClick={() => setMobileOpen(false)} className="block py-2 text-sm text-text-muted hover:text-text">
             Features
           </a>
-          <a href="https://github.com/suitedaces/dorabot" className="flex items-center gap-1.5 py-2 text-sm text-text-muted hover:text-text">
+          <a href="https://github.com/AlphaRancherAI/jarvis" className="flex items-center gap-1.5 py-2 text-sm text-text-muted hover:text-text">
             <GithubIcon /> Star on GitHub
           </a>
           <a href="https://discord.gg/FH99jkvMz" className="flex items-center gap-1.5 py-2 text-sm text-text-muted hover:text-text">

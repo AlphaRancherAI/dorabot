@@ -1,5 +1,5 @@
 /**
- * Animated dorabot mascot.
+ * Animated jarvis mascot.
  * Uses a single APNG (animated PNG) with a 25s loop:
  * idle with blinks, think, sleep
  */
@@ -10,13 +10,13 @@ interface Props {
   onClick?: () => void
 }
 
-export function DorabotSprite({ size = 96, className = '', onClick }: Props) {
+export function JarvisSprite({ size = 96, className = '', onClick }: Props) {
   const aspectRatio = 182 / 133
   const displayH = Math.round(size * aspectRatio)
 
   return (
     <img
-      src="./sprites/dorabot.png"
+      src="./sprites/jarvis.png"
       width={size}
       height={displayH}
       className={className}

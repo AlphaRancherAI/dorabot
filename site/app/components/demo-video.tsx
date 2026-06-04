@@ -3,7 +3,7 @@
 import { useState, useRef, useCallback, useEffect } from "react"
 
 const PREVIEW_URL = "https://pub-4316e19c5e0c4561879dabd80ec994f7.r2.dev/demo-preview.mp4"
-const FULL_VIDEO_URL = "https://pub-4316e19c5e0c4561879dabd80ec994f7.r2.dev/dorabot-demo-annotated.mp4"
+const FULL_VIDEO_URL = "https://pub-4316e19c5e0c4561879dabd80ec994f7.r2.dev/jarvis-demo-annotated.mp4"
 
 export function DemoVideo() {
   const [state, setState] = useState<"poster" | "preview" | "full">("poster")
@@ -63,7 +63,7 @@ export function DemoVideo() {
                 <source srcSet="/demo-poster.webp" type="image/webp" />
                 <img
                   src="/demo-poster.jpg"
-                  alt="dorabot demo"
+                  alt="jarvis demo"
                   decoding="async"
                   loading="eager"
                   className="h-full w-full object-cover"

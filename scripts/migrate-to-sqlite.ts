@@ -3,7 +3,7 @@
  * Migration script: file-based storage → SQLite
  *
  * Reads existing JSONL sessions, _index.json, _registry.json, cron-jobs.json, and BOARD.md
- * and imports them into ~/.dorabot/dorabot.db
+ * and imports them into ~/.jarvis/jarvis.db
  *
  * Run with: npx tsx scripts/migrate-to-sqlite.ts
  */
@@ -13,13 +13,13 @@ import { readFileSync, readdirSync, statSync, existsSync } from 'node:fs';
 import { join, basename } from 'node:path';
 import { homedir } from 'node:os';
 
-const DORABOT_DIR = join(homedir(), '.dorabot');
-const SESSION_DIR = join(DORABOT_DIR, 'sessions');
-const DB_PATH = join(DORABOT_DIR, 'dorabot.db');
+const JARVIS_DIR = join(homedir(), '.jarvis');
+const SESSION_DIR = join(JARVIS_DIR, 'sessions');
+const DB_PATH = join(JARVIS_DIR, 'jarvis.db');
 const INDEX_PATH = join(SESSION_DIR, '_index.json');
 const REGISTRY_PATH = join(SESSION_DIR, '_registry.json');
-const CRON_PATH = join(DORABOT_DIR, 'cron-jobs.json');
-const BOARD_PATH = join(DORABOT_DIR, 'workspace', 'BOARD.md');
+const CRON_PATH = join(JARVIS_DIR, 'cron-jobs.json');
+const BOARD_PATH = join(JARVIS_DIR, 'workspace', 'BOARD.md');
 
 function openDb(): Database.Database {
   const db = new Database(DB_PATH);

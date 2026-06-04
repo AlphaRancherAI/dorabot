@@ -11,9 +11,9 @@ Automate Chrome Canary via the `browser` MCP tool (Playwright over CDP). Canary 
 
 ## Configuration
 
-Profile: `~/.dorabot3/browser/profile` (persistent cookies/sessions)
+Profile: `~/.jarvis3/browser/profile` (persistent cookies/sessions)
 CDP port: 19222
-Config: `~/.dorabot3/config.json`
+Config: `~/.jarvis3/config.json`
 
 ```json
 {
@@ -37,7 +37,7 @@ pkill -f "Google Chrome Canary"
 # Launch Canary with CDP enabled
 "/Applications/Google Chrome Canary.app/Contents/MacOS/Google Chrome Canary" \
   --remote-debugging-port=19222 \
-  --user-data-dir="$HOME/.dorabot3/browser/profile" \
+  --user-data-dir="$HOME/.jarvis3/browser/profile" \
   --no-first-run --no-default-browser-check \
   "https://example.com" &
 
