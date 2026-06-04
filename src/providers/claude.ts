@@ -1,6 +1,7 @@
-import { query } from '@anthropic-ai/claude-agent-sdk';
+import { queryViaCli } from './claude-cli.js';
+import { createMcpBridge, type McpBridge } from '../tools/mcp-compat.js';
 import { readFileSync, writeFileSync, existsSync, mkdirSync, chmodSync } from 'node:fs';
-import { execFile, execSync, spawn } from 'node:child_process';
+import { execFile, execSync } from 'node:child_process';
 import { randomBytes, createHash } from 'node:crypto';
 import { dirname } from 'node:path';
 import type { Provider, ProviderRunOptions, ProviderMessage, ProviderAuthStatus, ProviderQueryResult, RunHandle } from './types.js';
@@ -8,63 +9,66 @@ import { guardImages } from './image-guard.js';
 import { DORABOT_DIR, CLAUDE_KEY_PATH, CLAUDE_OAUTH_PATH } from '../workspace.js';
 import { getSecretStorageBackend, keychainDelete, keychainLoad, keychainStore, type SecretStorageBackend } from '../auth/keychain.js';
 
-// ── Node binary resolution ──────────────────────────────────────────
-// Electron apps get a minimal PATH. Resolve the full path to node once at startup
-// so the SDK can spawn its CLI subprocess regardless of PATH state.
-let _nodeBinary: string | null = null;
-function resolveNodeBinary(): string {
-  if (_nodeBinary) return _nodeBinary;
+// ── Claude CLI binary resolution ────────────────────────────────────
+// Electron apps get a minimal PATH. Resolve the full path to the `claude`
+// executable once at startup so we can spawn it regardless of PATH state.
+// (The binary carries its own node shebang, so we don't resolve node ourselves.)
+let _claudeBinary: string | null = null;
+function resolveClaudeBinary(): string {
+  if (_claudeBinary) return _claudeBinary;
 
-  // 1. If current process IS node (not Electron), use its path directly
-  if (!process.versions.electron && process.execPath) {
-    _nodeBinary = process.execPath;
-    console.log(`[claude] node binary (execPath): ${_nodeBinary}`);
-    return _nodeBinary;
+  // 1. Explicit override
+  const override = process.env.DORABOT_CLAUDE_PATH || process.env.CLAUDE_CLI_PATH;
+  if (override && existsSync(override)) {
+    _claudeBinary = override;
+    console.log(`[claude] claude binary (env): ${_claudeBinary}`);
+    return _claudeBinary;
   }
 
-  // 2. Try resolving from login shell (handles nvm, fnm, volta, homebrew)
+  // 2. Try resolving from login shell (handles nvm, fnm, volta, homebrew, ~/.claude/local)
   try {
     const shell = process.env.SHELL || '/bin/zsh';
-    _nodeBinary = execSync(`${shell} -lc 'command -v node'`, {
+    const found = execSync(`${shell} -lc 'command -v claude'`, {
       timeout: 5000,
       encoding: 'utf-8',
     }).trim();
-    if (_nodeBinary && existsSync(_nodeBinary)) {
-      console.log(`[claude] node binary (shell): ${_nodeBinary}`);
-      return _nodeBinary;
+    if (found && existsSync(found)) {
+      _claudeBinary = found;
+      console.log(`[claude] claude binary (shell): ${_claudeBinary}`);
+      return _claudeBinary;
     }
   } catch { /* continue */ }
 
   // 3. Check common locations
   const candidates = [
-    '/usr/local/bin/node',
-    '/opt/homebrew/bin/node',
-    `${process.env.HOME}/.nvm/current/bin/node`,
-    `${process.env.HOME}/.fnm/current/bin/node`,
-    `${process.env.HOME}/.volta/bin/node`,
+    `${process.env.HOME}/.claude/local/claude`,
+    '/usr/local/bin/claude',
+    '/opt/homebrew/bin/claude',
+    `${process.env.HOME}/.nvm/current/bin/claude`,
+    `${process.env.HOME}/.fnm/current/bin/claude`,
+    `${process.env.HOME}/.volta/bin/claude`,
   ];
-  // Also check nvm versioned paths
   try {
     const nvmDir = process.env.NVM_DIR || `${process.env.HOME}/.nvm`;
     const defaultAlias = `${nvmDir}/alias/default`;
     if (existsSync(defaultAlias)) {
       const version = readFileSync(defaultAlias, 'utf-8').trim();
-      candidates.unshift(`${nvmDir}/versions/node/${version}/bin/node`);
+      candidates.unshift(`${nvmDir}/versions/node/${version}/bin/claude`);
     }
   } catch { /* ignore */ }
 
   for (const c of candidates) {
     if (existsSync(c)) {
-      _nodeBinary = c;
-      console.log(`[claude] node binary (fallback): ${_nodeBinary}`);
-      return _nodeBinary;
+      _claudeBinary = c;
+      console.log(`[claude] claude binary (fallback): ${_claudeBinary}`);
+      return _claudeBinary;
     }
   }
 
-  // 4. Last resort: just "node" and hope PATH is fixed elsewhere
-  _nodeBinary = 'node';
-  console.log('[claude] node binary: using bare "node" (not resolved)');
-  return _nodeBinary;
+  // 4. Last resort: bare "claude" and hope PATH is fixed elsewhere
+  _claudeBinary = 'claude';
+  console.log('[claude] claude binary: using bare "claude" (not resolved)');
+  return _claudeBinary;
 }
 
 // ── File paths ──────────────────────────────────────────────────────
@@ -681,6 +685,38 @@ export class ClaudeProvider implements Provider {
     reconnectRequired = false;
   }
 
+  /** Sync OAuth tokens from the active Claude Code IDE session (macOS Keychain). */
+  async syncFromCliSession(): Promise<{ ok: boolean; error?: string }> {
+    try {
+      const { execSync: exec } = await import('node:child_process');
+      // Read Claude Code's credential blob from keychain
+      const raw = exec(
+        'security find-generic-password -s "Claude Code-credentials" -w',
+        { timeout: 5000, stdio: ['pipe', 'pipe', 'pipe'] }
+      ).toString().trim();
+      const creds = JSON.parse(raw);
+      const oauth = creds?.claudeAiOauth;
+      if (!oauth?.accessToken || !oauth?.refreshToken) {
+        return { ok: false, error: 'No OAuth tokens found in Claude Code keychain entry' };
+      }
+      const tokens: OAuthTokens = {
+        access_token: oauth.accessToken,
+        refresh_token: oauth.refreshToken,
+        expires_at: oauth.expiresAt ?? (Date.now() + 60 * 60 * 1000),
+      };
+      persistOAuthTokens(tokens);
+      this._cachedAuth = null;
+      reconnectRequired = false;
+      process.env.CLAUDE_CODE_OAUTH_TOKEN = tokens.access_token;
+      console.log('[claude] synced OAuth tokens from Claude Code keychain');
+      return { ok: true };
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      console.error('[claude] syncFromCliSession failed:', msg);
+      return { ok: false, error: msg };
+    }
+  }
+
   /** Reload auth from keychain/env without clearing stored credentials. */
   reloadAuth(): void {
     this._cachedAuth = null;
@@ -763,7 +799,7 @@ export class ClaudeProvider implements Provider {
 
     // Create RunHandle for the gateway to inject messages
     // SDK query methods are attached after q is created (deferred binding)
-    let queryRef: ReturnType<typeof query> | null = null;
+    let queryRef: ReturnType<typeof queryViaCli> | null = null;
 
     const handle: RunHandle = {
       get active() { return !closed; },
@@ -825,64 +861,53 @@ export class ClaudeProvider implements Provider {
       thinking = thinkingCfg as any;
     }
 
-    // ── SDK query with async generator prompt ───────────────────────
-    // Resolve node binary for spawnClaudeCodeProcess (fixes ENOENT in Electron)
-    const nodePath = resolveNodeBinary();
+    // ── Build MCP bridges: in-process (sdk) servers bridge over the control
+    //    protocol; any external (stdio/http) servers go via --mcp-config. ──
+    const sdkBridges = new Map<string, McpBridge>();
+    const externalMcp: Record<string, unknown> = {};
+    for (const [name, entry] of Object.entries((opts.mcpServer as Record<string, any>) || {})) {
+      if (entry && entry.type === 'sdk' && entry.instance) {
+        sdkBridges.set(name, await createMcpBridge(entry.instance));
+      } else if (entry) {
+        externalMcp[name] = entry;
+      }
+    }
 
-    const q = query({
-      prompt: messageGenerator() as any,
-      options: {
-        model: opts.model,
-        systemPrompt: opts.systemPrompt,
-        tools: { type: 'preset', preset: 'claude_code' } as any,
-        disallowedTools: ['EnterPlanMode', 'ExitPlanMode'],
-        agents: opts.agents as any,
-        hooks: opts.hooks as any,
-        mcpServers: opts.mcpServer as any,
-        resume: opts.resumeId,
-        permissionMode: opts.config.permissionMode as any,
-        allowDangerouslySkipPermissions: opts.config.permissionMode === 'bypassPermissions',
-        sandbox: opts.sandbox as any,
-        cwd: opts.cwd,
-        env: opts.env,
-        maxTurns: opts.maxTurns,
-        maxBudgetUsd: opts.config.maxBudgetUsd,
-        effort,
-        thinking,
-        includePartialMessages: true,
-        canUseTool: opts.canUseTool as any,
-        abortController: opts.abortController,
-        stderr: (data: string) => console.error(`[claude:stderr] ${data.trimEnd()}`),
-        // Custom spawner: use resolved node path instead of bare "node" lookup
-        spawnClaudeCodeProcess: (spawnOpts: { command: string; args: string[]; cwd?: string; env: Record<string, string | undefined>; signal: AbortSignal }) => {
-          // If the SDK resolved a native binary, use it directly. Otherwise use our resolved node.
-          const cmd = spawnOpts.command === 'node' ? nodePath : spawnOpts.command;
-          const proc = spawn(cmd, spawnOpts.args, {
-            cwd: spawnOpts.cwd,
-            env: spawnOpts.env as NodeJS.ProcessEnv,
-            stdio: ['pipe', 'pipe', 'pipe'],
-            signal: spawnOpts.signal,
-          });
-          // Prevent unhandled EPIPE from crashing the gateway if subprocess exits
-          // before the SDK finishes writing to its stdin.
-          proc.stdin!.on('error', (err: NodeJS.ErrnoException) => {
-            if (err.code !== 'EPIPE') console.error(`[claude] subprocess stdin error: ${err.message}`);
-          });
-          proc.on('exit', (code, signal) => {
-            if (code !== 0 && code !== null) console.warn(`[claude] subprocess exited: code=${code} signal=${signal}`);
-          });
-          return {
-            stdin: proc.stdin!,
-            stdout: proc.stdout!,
-            get killed() { return proc.killed; },
-            get exitCode() { return proc.exitCode; },
-            kill: proc.kill.bind(proc),
-            on: proc.on.bind(proc),
-            once: proc.once.bind(proc),
-            off: proc.off.bind(proc),
-          };
-        },
-      } as any,
+    const maxThinkingTokens =
+      thinking && (thinking as any).type === 'enabled' ? (thinking as any).budgetTokens : undefined;
+
+    // ── Direct CLI driver (replaces SDK query()) ────────────────────
+    const q = queryViaCli({
+      claudePath: resolveClaudeBinary(),
+      prompt: messageGenerator(),
+      systemPrompt: opts.systemPrompt,
+      model: opts.model,
+      disallowedTools: ['EnterPlanMode', 'ExitPlanMode'],
+      permissionMode: opts.config.permissionMode,
+      allowDangerouslySkipPermissions: opts.config.permissionMode === 'bypassPermissions',
+      resume: opts.resumeId,
+      agents: opts.agents as Record<string, unknown> | undefined,
+      hooks: opts.hooks as import('./claude-cli.js').HooksConfig | undefined,
+      maxTurns: opts.maxTurns,
+      effort,
+      maxThinkingTokens,
+      maxBudgetUsd: opts.config.maxBudgetUsd,
+      cwd: opts.cwd,
+      env: opts.env,
+      abortController: opts.abortController,
+      canUseTool: opts.canUseTool as any,
+      sdkMcpServerNames: Array.from(sdkBridges.keys()),
+      onMcpMessage: sdkBridges.size
+        ? async (serverName, message) => {
+            const bridge = sdkBridges.get(serverName);
+            if (!bridge) {
+              return { jsonrpc: '2.0', id: (message as any)?.id ?? 0, error: { code: -32601, message: `unknown MCP server: ${serverName}` } };
+            }
+            return bridge(message);
+          }
+        : undefined,
+      mcpConfig: Object.keys(externalMcp).length ? externalMcp : undefined,
+      stderr: (data: string) => console.error(`[claude:stderr] ${data.trimEnd()}`),
     });
 
     // Bind SDK query methods to the handle for gateway access

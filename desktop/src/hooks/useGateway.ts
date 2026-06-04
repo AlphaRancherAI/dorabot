@@ -1787,6 +1787,10 @@ export function useGateway() {
     return res;
   }, [rpc]);
 
+  const syncAuth = useCallback(async () => {
+    return await rpc('provider.auth.sync', {}) as { ok: boolean; error?: string };
+  }, [rpc]);
+
   const checkProvider = useCallback(async (provider: string) => {
     return await rpc('provider.check', { provider }) as { ready: boolean; reason?: string };
   }, [rpc]);
@@ -1951,6 +1955,7 @@ export function useGateway() {
     getProviderStatus,
     setProvider,
     authWithApiKey,
+    syncAuth,
     resetAuth,
     reloadAuth,
     startOAuth,

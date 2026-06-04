@@ -101,6 +101,9 @@ export interface Provider {
   /** Reload auth from keychain without clearing stored credentials */
   reloadAuth?(): void;
 
+  /** Sync OAuth tokens from the active Claude Code IDE session */
+  syncFromCliSession?(): Promise<{ ok: boolean; error?: string }>;
+
   /** Authenticate with an API key */
   loginWithApiKey(apiKey: string): Promise<ProviderAuthStatus>;
 

@@ -4488,6 +4488,28 @@ export async function startGateway(opts: GatewayOptions): Promise<Gateway> {
           }
         }
 
+        case 'provider.auth.sync': {
+          try {
+            const p = await getProviderByName('claude');
+            if (!p.syncFromCliSession) return { id, error: 'sync not supported by this provider' };
+            const result = await p.syncFromCliSession();
+            if (result.ok) {
+              const status = await p.getAuthStatus();
+              broadcast({ event: 'provider.auth_complete', data: { provider: 'claude', status } });
+              if (pendingDesktopReauths.size > 0) {
+                console.log(`[gateway] sync auth complete, retrying ${pendingDesktopReauths.size} pending desktop run(s)`);
+                for (const pending of pendingDesktopReauths.values()) {
+                  void handleAgentRun(pending);
+                }
+                pendingDesktopReauths.clear();
+              }
+            }
+            return { id, result };
+          } catch (err) {
+            return { id, error: err instanceof Error ? err.message : String(err) };
+          }
+        }
+
         case 'provider.auth.reset': {
           try {
             const providerName = (params?.provider as string) || config.provider.name;
