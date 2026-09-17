@@ -4,6 +4,7 @@ import { readFileSync, writeFileSync, existsSync, mkdirSync, chmodSync } from 'n
 import { execFile, execSync } from 'node:child_process';
 import { randomBytes, createHash } from 'node:crypto';
 import { dirname } from 'node:path';
+import { createRequire } from 'node:module';
 import type { Provider, ProviderRunOptions, ProviderMessage, ProviderAuthStatus, ProviderQueryResult, RunHandle } from './types.js';
 import { guardImages } from './image-guard.js';
 import { JARVIS_DIR, CLAUDE_KEY_PATH, CLAUDE_OAUTH_PATH } from '../workspace.js';
@@ -65,7 +66,18 @@ function resolveClaudeBinary(): string {
     }
   }
 
-  // 4. Last resort: bare "claude" and hope PATH is fixed elsewhere
+  // 4. Use the CLI bundled with the Claude Agent SDK (always present as a dependency)
+  try {
+    const require = createRequire(import.meta.url);
+    const sdkCli = require.resolve('@anthropic-ai/claude-agent-sdk/cli.js');
+    if (existsSync(sdkCli)) {
+      _claudeBinary = sdkCli;
+      console.log(`[claude] claude binary (sdk): ${_claudeBinary}`);
+      return _claudeBinary;
+    }
+  } catch { /* continue */ }
+
+  // 5. Last resort: bare "claude" and hope PATH is fixed elsewhere
   _claudeBinary = 'claude';
   console.log('[claude] claude binary: using bare "claude" (not resolved)');
   return _claudeBinary;
