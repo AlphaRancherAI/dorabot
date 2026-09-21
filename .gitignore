@@ -52,7 +52,7 @@ site/node_modules/
 
 demo-video/
 
-# sprite source frames (keep dorabot.png APNG, ignore individual frames)
+# sprite source frames (keep jarvis.png APNG, ignore individual frames)
 desktop/public/sprites/idle_*.png
 desktop/public/sprites/blink_*.png
 desktop/public/sprites/walk_*.png

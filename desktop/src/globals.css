@@ -310,19 +310,19 @@
   -webkit-backdrop-filter: blur(20px) saturate(1.8);
 }
 
-/* dorabot idle animation */
-@keyframes dorabot-float {
+/* jarvis idle animation */
+@keyframes jarvis-float {
   0%, 100% { transform: translateY(0); }
   50% { transform: translateY(-3px); }
 }
 
-@keyframes dorabot-glow {
+@keyframes jarvis-glow {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.85; }
 }
 
-.dorabot-alive {
-  animation: dorabot-float 3s ease-in-out infinite, dorabot-glow 2s ease-in-out infinite;
+.jarvis-alive {
+  animation: jarvis-float 3s ease-in-out infinite, jarvis-glow 2s ease-in-out infinite;
   will-change: transform, opacity;
 }
 

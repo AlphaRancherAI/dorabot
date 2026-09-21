@@ -125,24 +125,24 @@ body {
   -webkit-backdrop-filter: blur(20px) saturate(1.8);
 }
 
-/* dorabot float animation - matches desktop */
-@keyframes dorabot-float {
+/* jarvis float animation - matches desktop */
+@keyframes jarvis-float {
   0%, 100% { transform: translateY(0); }
   50% { transform: translateY(-6px); }
 }
 
-@keyframes dorabot-glow {
+@keyframes jarvis-glow {
   0%, 100% { filter: brightness(1) drop-shadow(0 0 0px transparent); }
   50% { filter: brightness(1.15) drop-shadow(0 0 8px oklch(0.72 0.22 250 / 0.4)); }
 }
 
-.dorabot-alive {
-  animation: dorabot-float 3s ease-in-out infinite;
+.jarvis-alive {
+  animation: jarvis-float 3s ease-in-out infinite;
 }
 
 @media (min-width: 768px) {
-  .dorabot-alive {
-    animation: dorabot-float 3s ease-in-out infinite, dorabot-glow 2s ease-in-out infinite;
+  .jarvis-alive {
+    animation: jarvis-float 3s ease-in-out infinite, jarvis-glow 2s ease-in-out infinite;
   }
 }
 
